@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;font-size:14px;color:var(--color-text-primary);background:transparent;padding:1rem}
+h2{font-size:18px;font-weight:500;margin-bottom:1rem}
+h3{font-size:15px;font-weight:500;margin-bottom:.75rem}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem}
+.upload-box{border:1.5px dashed #ccc;border-radius:10px;padding:1.25rem;text-align:center;cursor:pointer;transition:background .15s}
+.upload-box:hover{background:var(--color-background-secondary,#f5f5f5)}
+.upload-box.loaded{border-style:solid;border-color:#1D9E75}
+.upload-tag{font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;display:inline-block;margin-bottom:6px}
+.tag-myte{background:#B5D4F4;color:#0C447C}
+.tag-msps{background:#9FE1CB;color:#085041}
+.upload-status{font-size:13px;color:var(--color-text-secondary,#666);margin-top:4px;word-break:break-all}
+.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
+.controls label{font-size:13px;color:var(--color-text-secondary,#666)}
+select{padding:6px 10px;border:0.5px solid #ccc;border-radius:8px;background:var(--color-background-primary,#fff);color:var(--color-text-primary,#000);font-size:13px}
+button{padding:7px 16px;border:0.5px solid #ccc;border-radius:8px;background:var(--color-background-primary,#fff);color:var(--color-text-primary,#000);font-size:13px;cursor:pointer}
+button:hover{background:var(--color-background-secondary,#f0f0f0)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.btn-compare{background:#E6F1FB;color:#185FA5;border-color:#378ADD;font-weight:500}
+.btn-export{background:#EAF3DE;color:#3B6D11;border-color:#639922}
+.err{color:#A32D2D;font-size:13px;padding:.5rem 0;min-height:1.5rem}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.5rem}
+.metric-card{background:var(--color-background-secondary,#f5f5f5);border-radius:8px;padding:.75rem 1rem}
+.metric-label{font-size:11px;color:var(--color-text-secondary,#666);margin-bottom:4px}
+.metric-val{font-size:22px;font-weight:500}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 10px;border-bottom:1px solid #ddd;font-weight:500;color:var(--color-text-secondary,#555);white-space:nowrap}
+td{padding:7px 10px;border-bottom:0.5px solid #eee;white-space:nowrap}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.match{background:#EAF3DE;color:#3B6D11}
+.mismatch{background:#FCEBEB;color:#A32D2D}
+#results{display:none;margin-top:1rem}
+.filter-row{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
+.filter-btn{font-size:12px;padding:4px 12px}
+.filter-btn.active{background:#E6F1FB;color:#185FA5;border-color:#378ADD}
+#csvBox{display:none;margin-top:1rem}
+</style>
+</head>
+<body>
+<h2>MYTE vs MSPS Timesheet Comparator</h2>
+
+<div style="margin-bottom:1rem">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+    <label style="font-size:13px;color:var(--color-text-secondary,#666)">Filter by Enterprise IDs (optional):</label>
+    <button style="font-size:12px;padding:3px 10px" id="toggleEIDInput">+ Add list</button>
+  </div>
+  <div id="eidInputBox" style="display:none">
+    <textarea id="eidList" placeholder="Enter Enterprise IDs, one per line or comma separated e.g.&#10;a.kiran.abhyankar&#10;c.a.chowdary" style="width:100%;height:100px;font-size:12px;font-family:monospace;border:0.5px solid #ccc;border-radius:8px;padding:8px;background:var(--color-background-primary);color:var(--color-text-primary);resize:vertical"></textarea>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button style="font-size:12px;padding:3px 10px" id="clearEIDBtn">Clear</button>
+      <span id="eidCount" style="font-size:12px;color:var(--color-text-secondary,#666);align-self:center"></span>
+    </div>
+  </div>
+</div>
+
+<div class="upload-grid">
+  <div class="upload-box" id="myteBox" onclick="triggerUpload('myteFile')">
+    <span class="upload-tag tag-myte">MYTE (Accenture)</span>
+    <div id="myteStatus" class="upload-status">Click to upload Excel / CSV</div>
+    <input type="file" id="myteFile" accept=".xlsx,.xls,.csv" style="display:none">
+  </div>
+  <div class="upload-box" id="mspsBox" onclick="triggerUpload('mspsFile')">
+    <span class="upload-tag tag-msps">MSPS (Client)</span>
+    <div id="mspsStatus" class="upload-status">Click to upload Excel / CSV</div>
+    <input type="file" id="mspsFile" accept=".xlsx,.xls,.csv" style="display:none">
+  </div>
+</div>
+
+<div class="controls">
+  <label>Month:</label>
+  <select id="monthSel">
+    <option value="">All months</option>
+    <option value="1">January</option><option value="2">February</option>
+    <option value="3">March</option><option value="4">April</option>
+    <option value="5">May</option><option value="6">June</option>
+    <option value="7">July</option><option value="8">August</option>
+    <option value="9">September</option><option value="10">October</option>
+    <option value="11">November</option><option value="12">December</option>
+  </select>
+  <select id="yearSel">
+    <option value="2024">2024</option>
+    <option value="2025">2025</option>
+    <option value="2026" selected>2026</option>
+  </select>
+  <button class="btn-compare" id="compareBtn" disabled>Compare</button>
+</div>
+<div class="err" id="errMsg"></div>
+
+<div id="results">
+  <h3>Summary</h3>
+  <div class="metrics" id="metrics"></div>
+  <h3>Resource breakdown</h3>
+  <div class="filter-row">
+    <button class="filter-btn active" id="f-all">All</button>
+    <button class="filter-btn" id="f-match">Matched only</button>
+    <button class="filter-btn" id="f-mismatch">Mismatched only</button>
+    <button class="btn-export" style="margin-left:auto" id="exportBtn">Export CSV</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Enterprise ID</th>
+        <th>MYTE Project Hrs</th>
+        <th>MYTE Non-Project Hrs</th>
+        <th>MYTE Total Hrs</th>
+        <th>MSPS Project Hrs</th>
+        <th>MSPS Non-Project Hrs</th>
+        <th>MSPS Total Hrs</th>
+        <th>Diff (Project Hrs)</th>
+        <th>Status</th>
+      </tr></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="csvBox">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+    <span style="font-size:13px;font-weight:500">CSV ready — copy below and paste into Notepad / TextEdit, then save as .csv</span>
+    <button id="copyBtn" style="font-size:12px;padding:4px 12px">Copy to clipboard</button>
+  </div>
+  <textarea id="csvOutput" readonly style="width:100%;height:200px;font-size:11px;font-family:monospace;border:0.5px solid #ccc;border-radius:8px;padding:8px;background:var(--color-background-secondary);color:var(--color-text-primary);resize:vertical"></textarea>
+</div>
+
+<script>
+var myteRows=[], mspsRows=[], tableData=[], activeFilter='all';
+var xlsxReady=false;
+
+function showErr(msg){ document.getElementById('errMsg').textContent=msg; }
+
+function loadXLSX(cb){
+  if(xlsxReady){cb();return;}
+  var s=document.createElement('script');
+  s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+  s.onload=function(){xlsxReady=true;cb();};
+  s.onerror=function(){showErr('Failed to load XLSX library. Try uploading as CSV instead.');};
+  document.head.appendChild(s);
+}
+
+function triggerUpload(id){
+  var el=document.getElementById(id);
+  el.onchange=function(){if(this.files[0]) handleFile(id,this.files[0]);};
+  el.click();
+}
+
+function sheetToRows(ws, headerRowIndex){
+  var raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  var hdrs=raw[headerRowIndex];
+  if(!hdrs) return [];
+  var rows=[];
+  for(var i=headerRowIndex+1;i<raw.length;i++){
+    var r=raw[i];
+    var allEmpty=r.every(function(v){return v===''||v===null||v===undefined;});
+    if(allEmpty) continue;
+    var obj={};
+    hdrs.forEach(function(h,j){
+      obj[String(h).trim()]=r[j]!==undefined&&r[j]!==null?String(r[j]).trim():'';
+    });
+    rows.push(obj);
+  }
+  return rows;
+}
+
+function handleFile(inputId,file){
+  var isMyte=inputId==='myteFile';
+  var statusId=isMyte?'myteStatus':'mspsStatus';
+  var boxId=isMyte?'myteBox':'mspsBox';
+  document.getElementById(statusId).textContent='Loading: '+file.name;
+  showErr('');
+  loadXLSX(function(){
+    var reader=new FileReader();
+    if(file.name.toLowerCase().endsWith('.csv')){
+      reader.onload=function(e){
+        try{
+          var lines=e.target.result.split('\n');
+          var startLine=isMyte?1:0;
+          var headers=parseCsvLine(lines[startLine]);
+          var rows=[];
+          for(var i=startLine+1;i<lines.length;i++){
+            var vals=parseCsvLine(lines[i]);
+            if(vals.join('').trim()==='') continue;
+            var obj={};
+            headers.forEach(function(h,j){obj[h.trim()]=vals[j]?vals[j].trim():'';});
+            rows.push(obj);
+          }
+          storeRows(isMyte,rows,file.name,statusId,boxId);
+        }catch(ex){showErr('CSV parse error: '+ex.message);}
+      };
+      reader.onerror=function(){showErr('Could not read file.');};
+      reader.readAsText(file);
+    } else {
+      reader.onload=function(e){
+        try{
+          var wb;
+          try{wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:false,raw:false});}
+          catch(e1){
+            try{wb=XLSX.read(e.target.result,{type:'binary',cellDates:false});}
+            catch(e2){throw new Error('Could not parse Excel. Try saving as CSV. ('+e2.message+')');}
+          }
+          var sheetIdx=isMyte?0:1;
+          if(wb.SheetNames.length<=sheetIdx) sheetIdx=wb.SheetNames.length-1;
+          var ws=wb.Sheets[wb.SheetNames[sheetIdx]];
+          var headerRowIndex=isMyte?1:0;
+          var rows=sheetToRows(ws,headerRowIndex);
+          storeRows(isMyte,rows,file.name+' ('+wb.SheetNames[sheetIdx]+')',statusId,boxId);
+        }catch(ex){showErr('Excel parse error: '+ex.message);}
+      };
+      reader.onerror=function(){showErr('Could not read file.');};
+      reader.readAsArrayBuffer(file);
+    }
+  });
+}
+
+function parseCsvLine(line){
+  var result=[],cur='',inQ=false;
+  for(var i=0;i<(line||'').length;i++){
+    var c=line[i];
+    if(c==='"'){inQ=!inQ;}
+    else if(c===','&&!inQ){result.push(cur);cur='';}
+    else{cur+=c;}
+  }
+  result.push(cur);
+  return result;
+}
+
+function storeRows(isMyte,rows,name,statusId,boxId){
+  if(isMyte) myteRows=rows; else mspsRows=rows;
+  document.getElementById(statusId).textContent=name+' ('+rows.length+' rows)';
+  document.getElementById(boxId).classList.add('loaded');
+  if(myteRows.length&&mspsRows.length) document.getElementById('compareBtn').disabled=false;
+}
+
+function getCol(row,name){
+  var k=Object.keys(row).find(function(k){return k.trim().toLowerCase()===name.toLowerCase();});
+  return k?String(row[k]).trim():'';
+}
+
+function getEID(row){
+  var k=Object.keys(row).find(function(k){
+    var n=k.trim().toLowerCase();
+    return n==='enterprise id'||n==='resource enterprise id';
+  });
+  return k?String(row[k]).trim():'';
+}
+
+function getNum(row,name){
+  var k=Object.keys(row).find(function(k){return k.trim().toLowerCase()===name.toLowerCase();});
+  if(!k) return 0;
+  var v=parseFloat(String(row[k]).replace(/[$,]/g,''));
+  return isNaN(v)?0:v;
+}
+
+function parseMYTEMonth(val){
+  if(!val) return null;
+  var s=String(val).trim().split(' ')[0].split('T')[0];
+  var parts=s.split(/[\/\-\.]/);
+  if(parts.length>=3){
+    var a=parseInt(parts[0]),b=parseInt(parts[1]),c=parseInt(parts[2]);
+    if(c>31) return {m:b,y:c};
+    if(a>31) return {m:b,y:a};
+  }
+  return null;
+}
+
+function parseMSPSMonth(val){
+  if(!val) return null;
+  var s=String(val).trim();
+  var n=Number(s);
+  if(!isNaN(n)&&n>40000){
+    var d=new Date(Math.round((n-25569)*86400*1000));
+    return {m:d.getUTCMonth()+1,y:d.getUTCFullYear()};
+  }
+  s=s.split(' ')[0].split('T')[0];
+  var parts=s.split(/[\/\-\.]/);
+  if(parts.length>=3){
+    var a=parseInt(parts[0]),b=parseInt(parts[1]),c=parseInt(parts[2]);
+    if(c>31) return {m:a,y:c};
+    if(a>31) return {m:b,y:a};
+  }
+  return null;
+}
+
+function round2(v){return Math.round(v*100)/100;}
+
+function getFilterEIDs(){
+  var raw=document.getElementById('eidList').value.trim();
+  if(!raw) return null;
+  var ids=raw.split(/[\n,]+/).map(function(s){return s.trim();}).filter(Boolean);
+  return ids.length?new Set(ids):null;
+}
+
+function compare(){
+  showErr('');
+  var mon=parseInt(document.getElementById('monthSel').value)||null;
+  var yr=parseInt(document.getElementById('yearSel').value);
+  var filterEIDs=getFilterEIDs();
+
+  var myteEIDs=new Set();
+  myteRows.forEach(function(r){
+    var e=getEID(r);
+    if(e&&(!filterEIDs||filterEIDs.has(e))) myteEIDs.add(e);
+  });
+
+  var allEIDs=new Set(myteEIDs);
+  mspsRows.forEach(function(r){
+    var e=getEID(r);
+    if(e&&(!filterEIDs||filterEIDs.has(e))) allEIDs.add(e);
+  });
+
+  if(!allEIDs.size){
+    var sampleCols=myteRows.length>0?Object.keys(myteRows[0]).slice(0,6).join(' | '):'no rows';
+    var sampleVals=myteRows.length>0?getEID(myteRows[0]):'n/a';
+    showErr('No Enterprise IDs found. MYTE columns detected: '+sampleCols+' | First EID value: "'+sampleVals+'"');
+    return;
+  }
+
+  var myteMap={};
+  myteRows.forEach(function(r){
+    var eid=getEID(r); if(!eid||!allEIDs.has(eid)) return;
+    if(mon){
+      var d=parseMYTEMonth(getCol(r,'Date'));
+      if(!d||d.m!==mon||d.y!==yr) return;
+    }
+    var bal3=getCol(r,'BAL3').toUpperCase();
+    var hrs=getNum(r,'Hours');
+    if(!myteMap[eid]) myteMap[eid]={proj:0,non:0};
+    if(bal3==='EXTERNAL CHARGEABLE SERVICES') myteMap[eid].proj+=hrs;
+    else myteMap[eid].non+=hrs;
+  });
+
+  var mspsMap={};
+  mspsRows.forEach(function(r){
+    var eid=getEID(r); if(!eid||!allEIDs.has(eid)) return;
+    if(mon){
+      var d=parseMSPSMonth(getCol(r,'Timesheet Period Start Date')||getCol(r,'Date'));
+      if(!d||d.m!==mon||d.y!==yr) return;
+    }
+    var projName=getCol(r,'Timesheet Line Project Name');
+    if(!projName.trim()) return;
+    var hrs=getNum(r,'Timesheet Hours');
+    if(!mspsMap[eid]) mspsMap[eid]={proj:0,non:0};
+    if(projName.trim().toLowerCase()==='administrative') mspsMap[eid].non+=hrs;
+    else mspsMap[eid].proj+=hrs;
+  });
+
+  var eids=Array.from(allEIDs);
+  if(!eids.length){showErr('No data found for selected month/year in MYTE. Try "All months" or check the Date column format.');return;}
+
+  tableData=eids.map(function(eid){
+    var m=myteMap[eid]||{proj:0,non:0};
+    var s=mspsMap[eid]||{proj:0,non:0};
+    var diff=round2(m.proj-s.proj);
+    return{eid:eid,mp:round2(m.proj),mn:round2(m.non),sp:round2(s.proj),sn:round2(s.non),diff:diff,match:diff===0};
+  });
+
+  renderMetrics();
+  renderTable();
+  document.getElementById('results').style.display='block';
+  document.getElementById('csvBox').style.display='none';
+}
+
+function renderMetrics(){
+  var total=tableData.length,matched=tableData.filter(function(r){return r.match;}).length;
+  var tMP=tableData.reduce(function(a,r){return a+r.mp;},0);
+  var tSP=tableData.reduce(function(a,r){return a+r.sp;},0);
+  var tMN=tableData.reduce(function(a,r){return a+r.mn;},0);
+  var tSN=tableData.reduce(function(a,r){return a+r.sn;},0);
+  document.getElementById('metrics').innerHTML=
+    mc('Total resources',total,'')+
+    mc('Matched',matched,'color:#3B6D11')+
+    mc('Mismatched',total-matched,'color:#A32D2D')+
+    mc('MYTE project hrs',tMP.toFixed(1),'')+
+    mc('MSPS project hrs',tSP.toFixed(1),'')+
+    mc('MYTE non-project hrs',tMN.toFixed(1),'')+
+    mc('MSPS non-project hrs',tSN.toFixed(1),'');
+}
+
+function mc(lbl,val,style){
+  return '<div class="metric-card"><div class="metric-label">'+lbl+'</div><div class="metric-val" style="'+style+'">'+val+'</div></div>';
+}
+
+function setFilter(f){
+  activeFilter=f;
+  ['all','match','mismatch'].forEach(function(x){
+    document.getElementById('f-'+x).classList.toggle('active',x===f);
+  });
+  renderTable();
+}
+
+function renderTable(){
+  var rows=tableData.filter(function(r){
+    if(activeFilter==='match') return r.match;
+    if(activeFilter==='mismatch') return !r.match;
+    return true;
+  });
+  document.getElementById('tableBody').innerHTML=rows.map(function(r){
+    var diffStr=r.diff>0?'+'+r.diff:String(r.diff);
+    var diffColor=r.diff===0?'#3B6D11':r.diff>0?'#A32D2D':'#854F0B';
+    return '<tr><td><strong>'+r.eid+'</strong></td>'+
+      '<td>'+r.mp+'</td><td>'+r.mn+'</td><td>'+round2(r.mp+r.mn)+'</td>'+
+      '<td>'+r.sp+'</td><td>'+r.sn+'</td><td>'+round2(r.sp+r.sn)+'</td>'+
+      '<td style="color:'+diffColor+'">'+diffStr+'</td>'+
+      '<td><span class="badge '+(r.match?'match':'mismatch')+'">'+(r.match?'Match':'Mismatch')+'</span></td></tr>';
+  }).join('')||'<tr><td colspan="9" style="padding:1rem;color:#888">No rows for this filter.</td></tr>';
+}
+
+function exportCSV(){
+  if(!tableData.length) return;
+  var hdr='Enterprise ID,MYTE Project Hrs,MYTE Non-Project Hrs,MYTE Total Hrs,MSPS Project Hrs,MSPS Non-Project Hrs,MSPS Total Hrs,Project Hrs Diff,Status\n';
+  var body=tableData.map(function(r){
+    return[r.eid,r.mp,r.mn,round2(r.mp+r.mn),r.sp,r.sn,round2(r.sp+r.sn),r.diff,r.match?'Match':'Mismatch'].join(',');
+  }).join('\n');
+  var box=document.getElementById('csvOutput');
+  box.value=hdr+body;
+  document.getElementById('csvBox').style.display='block';
+  box.select();
+  box.focus();
+}
+
+function copyCSV(){
+  var box=document.getElementById('csvOutput');
+  box.select();
+  box.setSelectionRange(0,99999);
+  var copied=false;
+  try{copied=document.execCommand('copy');}catch(e){}
+  if(copied){
+    document.getElementById('copyBtn').textContent='Copied!';
+    setTimeout(function(){document.getElementById('copyBtn').textContent='Copy to clipboard';},2500);
+  } else {
+    navigator.clipboard&&navigator.clipboard.writeText(box.value).then(function(){
+      document.getElementById('copyBtn').textContent='Copied!';
+      setTimeout(function(){document.getElementById('copyBtn').textContent='Copy to clipboard';},2500);
+    }).catch(function(){showErr('Select all text in the box (Ctrl+A) and copy manually (Ctrl+C).');});
+  }
+}
+
+document.getElementById('toggleEIDInput').onclick=function(){
+  var box=document.getElementById('eidInputBox');
+  var visible=box.style.display!=='none';
+  box.style.display=visible?'none':'block';
+  this.textContent=visible?'+ Add list':'- Hide list';
+};
+document.getElementById('clearEIDBtn').onclick=function(){
+  document.getElementById('eidList').value='';
+  document.getElementById('eidCount').textContent='';
+};
+document.getElementById('eidList').oninput=function(){
+  var ids=this.value.trim().split(/[\n,]+/).map(function(s){return s.trim();}).filter(Boolean);
+  document.getElementById('eidCount').textContent=ids.length?ids.length+' ID'+(ids.length>1?'s':'')+' entered':'';
+};
+document.getElementById('compareBtn').onclick=compare;
+document.getElementById('f-all').onclick=function(){setFilter('all');};
+document.getElementById('f-match').onclick=function(){setFilter('match');};
+document.getElementById('f-mismatch').onclick=function(){setFilter('mismatch');};
+document.getElementById('exportBtn').onclick=exportCSV;
+document.getElementById('copyBtn').onclick=copyCSV;
+</script>
+</body>
+</html>
