@@ -258,7 +258,13 @@ function getNum(row,name){
 
 function parseMYTEMonth(val){
   if(!val) return null;
-  var s=String(val).trim().split(' ')[0].split('T')[0];
+  var s=String(val).trim();
+  var n=Number(s);
+  if(!isNaN(n)&&n>40000){
+    var d=new Date(Math.round((n-25569)*86400*1000));
+    return {m:d.getUTCMonth()+1,y:d.getUTCFullYear()};
+  }
+  s=s.split(' ')[0].split('T')[0];
   var parts=s.split(/[\/\-\.]/);
   if(parts.length>=3){
     var a=parseInt(parts[0]),b=parseInt(parts[1]),c=parseInt(parts[2]);
@@ -308,10 +314,9 @@ function compare(){
   });
 
   var allEIDs=new Set(myteEIDs);
-  mspsRows.forEach(function(r){
-    var e=getEID(r);
-    if(e&&(!filterEIDs||filterEIDs.has(e))) allEIDs.add(e);
-  });
+  if(filterEIDs){
+    filterEIDs.forEach(function(e){ allEIDs.add(e); });
+  }
 
   if(!allEIDs.size){
     var sampleCols=myteRows.length>0?Object.keys(myteRows[0]).slice(0,6).join(' | '):'no rows';
