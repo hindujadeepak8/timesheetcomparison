@@ -416,11 +416,15 @@ function exportCSV(){
   var body=tableData.map(function(r){
     return[r.eid,r.mp,r.mn,round2(r.mp+r.mn),r.sp,r.sn,round2(r.sp+r.sn),r.diff,r.match?'Match':'Mismatch'].join(',');
   }).join('\n');
-  var box=document.getElementById('csvOutput');
-  box.value=hdr+body;
-  document.getElementById('csvBox').style.display='block';
-  box.select();
-  box.focus();
+  var csv=hdr+body;
+  var uri='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  var a=document.createElement('a');
+  a.setAttribute('href',uri);
+  a.setAttribute('download','timesheet_comparison.csv');
+  a.setAttribute('target','_blank');
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){document.body.removeChild(a);},100);
 }
 
 function copyCSV(){
