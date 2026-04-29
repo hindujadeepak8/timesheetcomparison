@@ -417,14 +417,24 @@ function exportCSV(){
     return[r.eid,r.mp,r.mn,round2(r.mp+r.mn),r.sp,r.sn,round2(r.sp+r.sn),r.diff,r.match?'Match':'Mismatch'].join(',');
   }).join('\n');
   var csv=hdr+body;
-  var uri='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
-  var a=document.createElement('a');
-  a.setAttribute('href',uri);
-  a.setAttribute('download','timesheet_comparison.csv');
-  a.setAttribute('target','_blank');
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(function(){document.body.removeChild(a);},100);
+  var downloaded=false;
+  try{
+    var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url; a.download='timesheet_comparison.csv';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    downloaded=true;
+  }catch(e){}
+  if(!downloaded){
+    var box=document.getElementById('csvOutput');
+    box.value=csv;
+    document.getElementById('csvBox').style.display='block';
+    box.select(); box.focus();
+    showErr('Direct download not supported here — copy the text below and save as .csv');
+  }
 }
 
 function copyCSV(){
