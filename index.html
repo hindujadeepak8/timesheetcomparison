@@ -41,10 +41,16 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .metric-val{font-size:22px;font-weight:500}
 
 /* ── Comparison results table ─────────────────────────── */
-.table-wrap{overflow-x:auto}
+/* max-height + overflow-y makes the body scroll while headers stay visible */
+.table-wrap{overflow-x:auto;max-height:480px;overflow-y:auto;border:0.5px solid #ddd;border-radius:8px}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;padding:8px 10px;border-bottom:1px solid #ddd;font-weight:500;color:var(--color-text-secondary,#555);white-space:nowrap}
+/* sticky top: header row stays fixed when the user scrolls vertically */
+th{text-align:left;padding:8px 10px;border-bottom:1px solid #ddd;font-weight:500;color:var(--color-text-secondary,#555);white-space:nowrap;position:sticky;top:0;background:var(--color-background-primary,#fff);z-index:2}
+/* z-index:3 on the corner cell so it overlaps both the sticky column and sticky header */
+th:first-child{position:sticky;left:0;top:0;z-index:3;background:var(--color-background-primary,#fff)}
 td{padding:7px 10px;border-bottom:0.5px solid #eee;white-space:nowrap}
+/* sticky left: Enterprise ID column stays fixed when the user scrolls horizontally */
+td:first-child{position:sticky;left:0;background:var(--color-background-primary,#fff);z-index:1;font-weight:500;border-right:1px solid #eee}
 .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
 .match{background:#EAF3DE;color:#3B6D11}
 .mismatch{background:#FCEBEB;color:#A32D2D}
@@ -124,16 +130,16 @@ td{padding:7px 10px;border-bottom:0.5px solid #eee;white-space:nowrap}
   <div class="table-wrap">
     <table>
       <thead><tr>
-        <th>Enterprise ID</th>
-        <th>MYTE Project Hrs</th>
-        <th>MYTE Non-Project Hrs</th>
-        <th>MYTE Total Hrs</th>
-        <th>MSPS Project Hrs</th>
-        <th>MSPS Non-Project Hrs</th>
-        <th>MSPS Total Hrs</th>
-        <th>MSPS Timesheet Status</th>  <!-- approval status pulled from the MSPS "Timesheet Status" column -->
-        <th>Diff (Project Hrs)</th>
-        <th>Status</th>
+        <th>Enterprise ID</th>       <!-- sticky left + sticky top corner cell -->
+        <th>MYTE Proj Hrs</th>
+        <th>MYTE Non-Proj Hrs</th>
+        <th>MYTE Total</th>
+        <th>MSPS Proj Hrs</th>
+        <th>MSPS Non-Proj Hrs</th>
+        <th>MSPS Total</th>
+        <th>TS Status</th>           <!-- MSPS Timesheet approval status -->
+        <th>Diff</th>                <!-- MYTE project hrs minus MSPS project hrs -->
+        <th>Status</th>              <!-- Match / Mismatch badge -->
       </tr></thead>
       <tbody id="tableBody"></tbody>
     </table>
@@ -177,8 +183,8 @@ function triggerUpload(id){
 /*
  * Convert an XLSX worksheet to an array of plain row objects.
  * headerRowIndex: 0-based index of the row containing column headers.
- *   MYTE files have a report-title row above the headers, so index = 1.
- *   MSPS files start headers on the first row, so index = 0.
+ *   MYTE files have a report-title row above headers → index 1.
+ *   MSPS files start headers on row 0.
  */
 function sheetToRows(ws, headerRowIndex){
   var raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
@@ -200,8 +206,8 @@ function sheetToRows(ws, headerRowIndex){
 }
 
 /*
- * Read the uploaded file, detect whether it is CSV or Excel,
- * parse it into row objects, then hand off to storeRows().
+ * Read the uploaded file, detect format (CSV vs Excel),
+ * parse it into row objects, and hand off to storeRows().
  */
 function handleFile(inputId,file){
   var isMyte=inputId==='myteFile';
@@ -216,7 +222,7 @@ function handleFile(inputId,file){
       reader.onload=function(e){
         try{
           var lines=e.target.result.split('\n');
-          // MYTE CSVs include a non-data title line at index 0; skip it
+          // MYTE CSVs have a non-data title line at index 0; skip it
           var startLine=isMyte?1:0;
           var headers=parseCsvLine(lines[startLine]);
           var rows=[];
@@ -237,13 +243,13 @@ function handleFile(inputId,file){
       reader.onload=function(e){
         try{
           var wb;
-          // Try the modern ArrayBuffer API first; fall back to legacy binary mode for older .xls files
+          // Try modern ArrayBuffer parsing first; fall back to legacy binary mode for older .xls files
           try{wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:false,raw:false});}
           catch(e1){
             try{wb=XLSX.read(e.target.result,{type:'binary',cellDates:false});}
             catch(e2){throw new Error('Could not parse Excel. Try saving as CSV. ('+e2.message+')');}
           }
-          // MYTE data lives on sheet 0; MSPS data on sheet 1 (fall back to last sheet if missing)
+          // MYTE data is on sheet 0; MSPS data is on sheet 1 (fall back to last sheet if missing)
           var sheetIdx=isMyte?0:1;
           if(wb.SheetNames.length<=sheetIdx) sheetIdx=wb.SheetNames.length-1;
           var ws=wb.Sheets[wb.SheetNames[sheetIdx]];
@@ -260,7 +266,7 @@ function handleFile(inputId,file){
 
 /*
  * Parse a single CSV line into an array of field strings.
- * Handles double-quoted fields that contain commas.
+ * Handles double-quoted fields that may contain commas.
  */
 function parseCsvLine(line){
   var result=[],cur='',inQ=false;
@@ -274,7 +280,7 @@ function parseCsvLine(line){
   return result;
 }
 
-/* Persist parsed rows to global state and enable the Compare button once both files are loaded. */
+/* Persist parsed rows to global state and enable Compare once both files are loaded. */
 function storeRows(isMyte,rows,name,statusId,boxId){
   if(isMyte) myteRows=rows; else mspsRows=rows;
   document.getElementById(statusId).textContent=name+' ('+rows.length+' rows)';
@@ -288,7 +294,7 @@ function getCol(row,name){
   return k?String(row[k]).trim():'';
 }
 
-/* Extract the Enterprise ID from a row, accepting both "Enterprise ID" and "Resource Enterprise ID" column names. */
+/* Extract the Enterprise ID, accepting both "Enterprise ID" and "Resource Enterprise ID" as the column name. */
 function getEID(row){
   var k=Object.keys(row).find(function(k){
     var n=k.trim().toLowerCase();
@@ -307,21 +313,20 @@ function getNum(row,name){
 
 /*
  * Parse the MYTE "Date" column into {m, y}.
- * Handles three formats:
- *   1. Excel serial number > 40000 → convert via the Unix epoch offset of 25569 days
- *   2. "MM/DD/YYYY" strings — year > 31 is in position [2], month in position [1]
- *   3. "YYYY-MM-DD" strings — year > 31 is in position [0], month in position [1]
+ * Handles:
+ *   1. Excel serial number > 40000 → subtract 25569 days to convert to Unix epoch
+ *   2. MM/DD/YYYY string → year > 31 is in position [2], month in [1]
+ *   3. YYYY-MM-DD string → year > 31 is in position [0], month in [1]
  */
 function parseMYTEMonth(val){
   if(!val) return null;
   var s=String(val).trim();
   var n=Number(s);
   if(!isNaN(n)&&n>40000){
-    // Excel date serial: days since 1900-01-00; subtract 25569 to convert to Unix days
     var d=new Date(Math.round((n-25569)*86400*1000));
     return {m:d.getUTCMonth()+1,y:d.getUTCFullYear()};
   }
-  s=s.split(' ')[0].split('T')[0]; // strip time portion
+  s=s.split(' ')[0].split('T')[0]; // strip time component
   var parts=s.split(/[\/\-\.]/);
   if(parts.length>=3){
     var a=parseInt(parts[0]),b=parseInt(parts[1]),c=parseInt(parts[2]);
@@ -333,8 +338,8 @@ function parseMYTEMonth(val){
 
 /*
  * Parse the MSPS "Timesheet Period Start Date" column into {m, y}.
- * Uses the same Excel serial logic as parseMYTEMonth, but MSPS stores
- * dates as DD/MM/YYYY so the day is in position [0] and month in position [1].
+ * Same Excel serial logic as parseMYTEMonth, but MSPS uses DD/MM/YYYY
+ * so the day is in position [0] and month in position [1].
  */
 function parseMSPSMonth(val){
   if(!val) return null;
@@ -348,7 +353,7 @@ function parseMSPSMonth(val){
   var parts=s.split(/[\/\-\.]/);
   if(parts.length>=3){
     var a=parseInt(parts[0]),b=parseInt(parts[1]),c=parseInt(parts[2]);
-    if(c>31) return {m:a,y:c}; // DD/MM/YYYY — month is index 1 (b), but a is day here so m=a? No: DD/MM/YYYY → day=a, month=b
+    if(c>31) return {m:a,y:c}; // DD/MM/YYYY
     if(a>31) return {m:b,y:a};
   }
   return null;
@@ -357,7 +362,7 @@ function parseMSPSMonth(val){
 /* Round a number to at most 2 decimal places. */
 function round2(v){return Math.round(v*100)/100;}
 
-/* Read the EID filter textarea and return a Set of trimmed IDs, or null if the textarea is empty. */
+/* Read the EID filter textarea and return a Set of trimmed IDs, or null if the field is empty. */
 function getFilterEIDs(){
   var raw=document.getElementById('eidList').value.trim();
   if(!raw) return null;
@@ -372,14 +377,14 @@ function compare(){
   var yr=parseInt(document.getElementById('yearSel').value);
   var filterEIDs=getFilterEIDs();
 
-  // Collect all EIDs present in MYTE (restricted to the filter list when one is provided)
+  // Collect all EIDs present in MYTE (restricted to the filter list when provided)
   var myteEIDs=new Set();
   myteRows.forEach(function(r){
     var e=getEID(r);
     if(e&&(!filterEIDs||filterEIDs.has(e))) myteEIDs.add(e);
   });
 
-  // Union: also include EIDs from the filter list that may be absent in MYTE (shows as 0 hrs)
+  // Union: also include EIDs from the filter list absent in MYTE (will show as 0 hrs)
   var allEIDs=new Set(myteEIDs);
   if(filterEIDs){
     filterEIDs.forEach(function(e){ allEIDs.add(e); });
@@ -393,7 +398,7 @@ function compare(){
   }
 
   // ── Aggregate MYTE hours per EID ──────────────────────────────
-  // BAL3 = "EXTERNAL CHARGEABLE SERVICES" → project hours; all other BAL3 values → non-project
+  // BAL3 = "EXTERNAL CHARGEABLE SERVICES" → project hrs; everything else → non-project hrs
   var myteMap={};
   myteRows.forEach(function(r){
     var eid=getEID(r); if(!eid||!allEIDs.has(eid)) return;
@@ -409,7 +414,7 @@ function compare(){
   });
 
   // ── Aggregate MSPS hours per EID ──────────────────────────────
-  // Project name = "Administrative" → non-project hours; anything else → project hours
+  // Project name = "Administrative" → non-project hrs; anything else → project hrs
   // Also captures the first "Timesheet Status" value seen for each EID
   var mspsMap={};
   mspsRows.forEach(function(r){
@@ -424,7 +429,6 @@ function compare(){
     if(!mspsMap[eid]) mspsMap[eid]={proj:0,non:0,status:''};
     if(projName.trim().toLowerCase()==='administrative') mspsMap[eid].non+=hrs;
     else mspsMap[eid].proj+=hrs;
-    // Keep the first non-empty status encountered for this EID
     if(!mspsMap[eid].status) mspsMap[eid].status=getCol(r,'Timesheet Status');
   });
 
@@ -462,7 +466,7 @@ function renderMetrics(){
     mc('MSPS non-project hrs',tSN.toFixed(1),'');
 }
 
-/* Build the HTML for a single metric card. */
+/* Build the HTML string for a single metric card. */
 function mc(lbl,val,style){
   return '<div class="metric-card"><div class="metric-label">'+lbl+'</div><div class="metric-val" style="'+style+'">'+val+'</div></div>';
 }
@@ -498,9 +502,9 @@ function renderTable(){
 
 /*
  * Export tableData as a CSV file.
- * Primary path: Blob + object URL (works in standard browsers).
- * Fallback path: show the CSV in a read-only textarea for manual copy/save
- *   — needed in sandboxed webview environments where Blob downloads are blocked.
+ * Primary path: Blob + object URL download (works in standard browsers).
+ * Fallback path: display CSV in a read-only textarea for manual copy/save
+ *   — used in sandboxed webview environments where Blob downloads are blocked.
  */
 function exportCSV(){
   if(!tableData.length) return;
@@ -511,7 +515,7 @@ function exportCSV(){
   var csv=hdr+body;
   var downloaded=false;
   try{
-    // Prepend UTF-8 BOM (﻿) so Excel opens accented characters correctly
+    // ﻿ = UTF-8 BOM so Excel opens accented characters correctly
     var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
@@ -522,7 +526,7 @@ function exportCSV(){
     downloaded=true;
   }catch(e){}
   if(!downloaded){
-    // Blob download unavailable — surface the raw CSV for manual copy
+    // Blob download failed — surface raw CSV for manual copy
     var box=document.getElementById('csvOutput');
     box.value=csv;
     document.getElementById('csvBox').style.display='block';
@@ -531,7 +535,7 @@ function exportCSV(){
   }
 }
 
-/* Copy the fallback CSV textarea to the clipboard; try the legacy execCommand first, then the async Clipboard API. */
+/* Copy the fallback CSV textarea to clipboard; try legacy execCommand first, then the async Clipboard API. */
 function copyCSV(){
   var box=document.getElementById('csvOutput');
   box.select();
@@ -559,19 +563,16 @@ document.getElementById('toggleEIDInput').onclick=function(){
   box.style.display=visible?'none':'block';
   this.textContent=visible?'+ Add list':'- Hide list';
 };
-
 // Clear the EID textarea and its live counter
 document.getElementById('clearEIDBtn').onclick=function(){
   document.getElementById('eidList').value='';
   document.getElementById('eidCount').textContent='';
 };
-
-// Live counter: update the "N IDs entered" label as the user types
+// Live counter: update "N IDs entered" label as the user types
 document.getElementById('eidList').oninput=function(){
   var ids=this.value.trim().split(/[\n,]+/).map(function(s){return s.trim();}).filter(Boolean);
   document.getElementById('eidCount').textContent=ids.length?ids.length+' ID'+(ids.length>1?'s':'')+' entered':'';
 };
-
 document.getElementById('compareBtn').onclick=compare;
 document.getElementById('f-all').onclick=function(){setFilter('all');};
 document.getElementById('f-match').onclick=function(){setFilter('match');};
