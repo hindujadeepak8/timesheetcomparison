@@ -1,346 +1,517 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-/* ===== RESET & BASE ===== */
+/* ── TOKENS ── */
+:root{
+  --bg:#f0f4f9;--bg2:#ffffff;--bg3:#f5f7fa;--bg4:#eaeff6;
+  --border:#dde3ed;--border2:#c8d0e0;
+  --accent:#2563eb;--accent2:#6366f1;--accent-g:linear-gradient(135deg,#2563eb,#6366f1);
+  --green:#059669;--red:#dc2626;--amber:#d97706;
+  --text:#1e2535;--text2:#4b5675;--text3:#8993aa;
+  --font:'Segoe UI',system-ui,sans-serif;
+  --r:12px;--r2:8px;--shadow:0 4px 24px rgba(0,0,0,.08);
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:sans-serif;font-size:14px;color:var(--color-text-primary);background:transparent;padding:1rem}
-h2{font-size:18px;font-weight:500;margin-bottom:1rem}
-h3{font-size:15px;font-weight:500;margin-bottom:.75rem}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
 
-/* ===== UPLOAD BOXES ===== */
-.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem}
-.upload-box{border:1.5px dashed #ccc;border-radius:10px;padding:1.25rem;text-align:center;cursor:pointer;transition:background .15s}
-.upload-box:hover{background:var(--color-background-secondary,#f5f5f5)}
-.upload-box.loaded{border-style:solid;border-color:#1D9E75}
-.upload-tag{font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;display:inline-block;margin-bottom:6px}
-.tag-myte{background:#B5D4F4;color:#0C447C}
-.tag-msps{background:#9FE1CB;color:#085041}
-.upload-status{font-size:13px;color:var(--color-text-secondary,#666);margin-top:4px;word-break:break-all}
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg3)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text3)}
 
-/* ===== CONTROLS ===== */
-.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
-.controls label{font-size:13px;color:var(--color-text-secondary,#666)}
-select{padding:6px 10px;border:0.5px solid #ccc;border-radius:8px;background:var(--color-background-primary,#fff);color:var(--color-text-primary,#000);font-size:13px}
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes barFill{from{width:0}to{width:var(--w)}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(79,142,247,.4)}50%{box-shadow:0 0 0 6px rgba(79,142,247,0)}}
+@keyframes countUp{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 
-/* ===== BUTTONS ===== */
-button{padding:7px 16px;border:0.5px solid #ccc;border-radius:8px;background:var(--color-background-primary,#fff);color:var(--color-text-primary,#000);font-size:13px;cursor:pointer}
-button:hover{background:var(--color-background-secondary,#f0f0f0)}
-button:disabled{opacity:.4;cursor:not-allowed}
-.btn-compare{background:#E6F1FB;color:#185FA5;border-color:#378ADD;font-weight:500}
-.btn-export{background:#EAF3DE;color:#3B6D11;border-color:#639922}
+/* ── LAYOUT ── */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.5rem 1rem;flex-shrink:0;position:sticky;top:0;height:100vh}
+.main{flex:1;padding:2rem;overflow-x:hidden}
 
-/* ===== ERROR / STATUS MESSAGE ===== */
-.err{color:#A32D2D;font-size:13px;padding:.5rem 0;min-height:1.5rem}
+/* ── SIDEBAR ── */
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:2rem;padding:0 .25rem}
+.logo-icon{width:34px;height:34px;background:var(--accent-g);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.logo-text{font-size:13px;font-weight:700;color:var(--text);line-height:1.3}
+.logo-sub{font-size:10px;color:var(--text2);font-weight:400}
+.nav-group{margin-bottom:1.5rem}
+.nav-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:0 .5rem;margin-bottom:.5rem}
+.nav-item{display:flex;align-items:center;gap:9px;padding:.55rem .75rem;border-radius:var(--r2);font-size:13px;color:var(--text2);cursor:pointer;transition:all .15s;margin-bottom:2px}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(79,142,247,.15);color:var(--accent);font-weight:500}
+.nav-item .icon{width:16px;text-align:center;font-size:14px;flex-shrink:0}
+.sidebar-footer{margin-top:auto;padding:.75rem;background:var(--bg3);border-radius:var(--r2);font-size:11px;color:var(--text3);line-height:1.6}
 
-/* ===== SUMMARY METRIC CARDS ===== */
-.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.5rem}
-.metric-card{background:var(--color-background-secondary,#f5f5f5);border-radius:8px;padding:.75rem 1rem}
-.metric-label{font-size:11px;color:var(--color-text-secondary,#666);margin-bottom:4px}
-.metric-val{font-size:22px;font-weight:500}
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;animation:fadeUp .4s ease}
+.page-title h2{font-size:20px;font-weight:700;background:var(--accent-g);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.page-title p{font-size:13px;color:var(--text2);margin-top:2px}
+.topbar-actions{display:flex;gap:8px;align-items:center}
 
-/* ===== RESULTS TABLE (sticky header + frozen first column) ===== */
-.table-wrap{overflow-x:auto;max-height:480px;overflow-y:auto;border:0.5px solid #ddd;border-radius:8px}
+/* ── STEP PROGRESS ── */
+.progress-bar{display:flex;align-items:center;gap:0;background:var(--bg2);border:1px solid var(--border);border-radius:40px;padding:4px;margin-bottom:2rem;animation:fadeUp .4s ease .05s both}
+.prog-step{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:.5rem .75rem;border-radius:36px;font-size:12px;font-weight:500;color:var(--text3);transition:all .3s;cursor:default}
+.prog-step.done{color:var(--green)}
+.prog-step.active{background:rgba(79,142,247,.15);color:var(--accent);font-weight:600}
+.prog-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:var(--bg4);color:var(--text3);flex-shrink:0;transition:all .3s}
+.prog-step.done .prog-dot{background:var(--green);color:#000}
+.prog-step.active .prog-dot{background:var(--accent);color:#fff;animation:glow 1.5s infinite}
+
+/* ── GRID ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:1.5rem}
+
+/* ── CARD ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem 1.5rem;animation:fadeUp .4s ease both}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem}
+.card-title{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px}
+.card-title .dot{width:7px;height:7px;border-radius:50%;background:var(--accent-g)}
+
+/* ── UPLOAD BOX ── */
+.upload-box{border:1.5px dashed var(--border2);border-radius:var(--r);padding:1.75rem 1.25rem;text-align:center;cursor:pointer;transition:all .25s;background:var(--bg3);position:relative;overflow:hidden}
+.upload-box::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(79,142,247,.06),rgba(99,102,241,.06));opacity:0;transition:opacity .25s}
+.upload-box:hover{border-color:var(--accent);background:var(--bg3)}
+.upload-box:hover::before{opacity:1}
+.upload-box.loaded{border-style:solid;border-color:var(--green);background:rgba(34,211,160,.05)}
+.upload-box.loaded::before{opacity:0}
+.upload-icon{font-size:32px;margin-bottom:.5rem;display:block}
+.upload-tag{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:.6rem;letter-spacing:.06em;text-transform:uppercase}
+.tag-myte{background:rgba(79,142,247,.2);color:#93c5fd;border:1px solid rgba(79,142,247,.3)}
+.tag-msps{background:rgba(34,211,160,.15);color:#6ee7b7;border:1px solid rgba(34,211,160,.25)}
+.upload-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+.upload-hint{font-size:11px;color:var(--text3)}
+.upload-status{font-size:12px;color:var(--text2);margin-top:8px;line-height:1.5}
+.upload-box.loaded .upload-status{color:var(--green)}
+
+/* ── CONTROLS ── */
+.controls-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ctrl-label{font-size:12px;font-weight:500;color:var(--text2)}
+select{padding:8px 12px;border:1px solid var(--border2);border-radius:var(--r2);background:var(--bg3);color:var(--text);font-size:13px;outline:none;cursor:pointer;transition:border-color .2s}
+select:focus{border-color:var(--accent)}
+
+/* ── EID FILTER ── */
+.eid-toggle{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-size:12px;font-weight:500;cursor:pointer;padding:.35rem .75rem;border-radius:20px;border:1px solid rgba(79,142,247,.3);background:rgba(79,142,247,.08);transition:all .2s;margin-bottom:.75rem}
+.eid-toggle:hover{background:rgba(79,142,247,.15)}
+.eid-box{display:none;animation:slideDown .2s ease}
+.eid-box textarea{width:100%;height:88px;font-size:12px;font-family:monospace;border:1px solid var(--border2);border-radius:var(--r2);padding:8px;resize:vertical;background:var(--bg3);color:var(--text);outline:none;transition:border-color .2s}
+.eid-box textarea:focus{border-color:var(--accent)}
+.eid-meta{display:flex;gap:8px;margin-top:6px;align-items:center}
+.eid-count{font-size:11px;color:var(--text3)}
+
+/* ── BUTTONS ── */
+.btn{padding:8px 18px;border-radius:var(--r2);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+.btn-primary{background:var(--accent-g);color:#fff;box-shadow:0 2px 12px rgba(79,142,247,.35)}
+.btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 20px rgba(79,142,247,.5)}
+.btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
+.btn-ghost:hover:not(:disabled){background:var(--bg4);color:var(--text)}
+.btn-green{background:rgba(34,211,160,.15);color:var(--green);border:1px solid rgba(34,211,160,.3)}
+.btn-green:hover{background:rgba(34,211,160,.25)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-danger{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.25)}
+
+/* ── SPINNER ── */
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:none}
+
+/* ── METRICS ── */
+.metric-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.1rem;animation:countUp .4s ease both;position:relative;overflow:hidden}
+.metric-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.metric-card.blue::after{background:var(--accent-g)}
+.metric-card.green::after{background:var(--green)}
+.metric-card.red::after{background:var(--red)}
+.metric-card.amber::after{background:var(--amber)}
+.metric-card.indigo::after{background:#818cf8}
+.metric-card.teal::after{background:#2dd4bf}
+.metric-card.orange::after{background:#fb923c}
+.metric-label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem}
+.metric-val{font-size:26px;font-weight:800;color:var(--text);line-height:1}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:.3rem}
+
+/* ── FILTER CHIPS ── */
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);transition:all .2s}
+.chip:hover{background:var(--bg4);color:var(--text)}
+.chip.active{background:rgba(79,142,247,.15);color:var(--accent);border-color:rgba(79,142,247,.4)}
+.chip.match-chip.active{background:rgba(34,211,160,.12);color:var(--green);border-color:rgba(34,211,160,.35)}
+.chip.mismatch-chip.active{background:rgba(248,113,113,.1);color:var(--red);border-color:rgba(248,113,113,.3)}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r2)}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;padding:8px 10px;border-bottom:1px solid #ddd;font-weight:500;color:var(--color-text-secondary,#555);white-space:nowrap;position:sticky;top:0;background:var(--color-background-primary,#fff);z-index:2}
-th:first-child{position:sticky;left:0;top:0;z-index:3;background:var(--color-background-primary,#fff)}
-td{padding:7px 10px;border-bottom:0.5px solid #eee;white-space:nowrap}
-td:first-child{position:sticky;left:0;background:var(--color-background-primary,#fff);z-index:1;font-weight:500;border-right:1px solid #eee}
+thead{position:sticky;top:0;z-index:5}
+thead tr{background:var(--bg3)}
+th{padding:10px 14px;border-bottom:1px solid var(--border);font-weight:600;color:var(--text2);white-space:nowrap;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+th:first-child{position:sticky;left:0;z-index:6;background:var(--bg3)}
+td{padding:10px 14px;border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text);transition:background .15s}
+td:first-child{position:sticky;left:0;background:var(--bg2);z-index:1;font-weight:600;border-right:1px solid var(--border)}
+tbody tr{transition:background .15s}
+tbody tr:hover td{background:var(--bg3)!important}
+tbody tr.exp-row td{background:rgba(79,142,247,.07)!important}
+tbody tr.exp-row td:first-child{background:rgba(79,142,247,.07)!important;border-left:2px solid var(--accent)}
+.detail-row td{padding:0;border-bottom:1px solid var(--border)}
 
-/* ===== MATCH / MISMATCH BADGES ===== */
-.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
-.match{background:#EAF3DE;color:#3B6D11}
-.mismatch{background:#FCEBEB;color:#A32D2D}
+/* ── BADGE ── */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge.match{background:rgba(34,211,160,.15);color:var(--green);border:1px solid rgba(34,211,160,.3)}
+.badge.mismatch{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.25)}
 
-/* ===== FILTER BUTTONS ===== */
-#results{display:none;margin-top:1rem}
-.filter-row{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
-.filter-btn{font-size:12px;padding:4px 12px}
-.filter-btn.active{background:#E6F1FB;color:#185FA5;border-color:#378ADD}
+/* ── DETAIL PANEL ── */
+.detail-panel{background:var(--bg3);padding:1.25rem 1.5rem;animation:slideDown .2s ease;border-top:1px solid var(--border)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.detail-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:1rem 1.1rem}
+.detail-section h4{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.85rem;display:flex;align-items:center;gap:6px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:.6rem}
+.bar-lbl{font-size:11px;color:var(--text2);width:100px;flex-shrink:0}
+.bar-track{flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;animation:barFill .7s ease forwards}
+.bar-fill.proj{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.bar-fill.nonproj{background:linear-gradient(90deg,var(--amber),#f97316)}
+.bar-val{font-size:12px;font-weight:700;color:var(--text);width:42px;text-align:right;flex-shrink:0}
+.verdict{padding:.7rem 1rem;border-radius:var(--r2);font-size:13px;font-weight:500;text-align:center}
+.verdict.ok{background:rgba(34,211,160,.1);color:var(--green);border:1px solid rgba(34,211,160,.2)}
+.verdict.bad{background:rgba(248,113,113,.08);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.verdict.warn{background:rgba(251,191,36,.08);color:var(--amber);border:1px solid rgba(251,191,36,.2)}
 
-/* ===== CSV EXPORT TEXT BOX (fallback for sandboxed environments) ===== */
-#csvBox{display:none;margin-top:1rem}
+/* ── MSG ── */
+.msg{font-size:13px;padding:.65rem 1rem;border-radius:var(--r2);min-height:2.4rem;display:flex;align-items:center;gap:8px;margin-bottom:1rem;transition:all .2s}
+.msg:empty{background:transparent;border:none;padding:0;min-height:0}
+.msg.error{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.msg.info{background:rgba(79,142,247,.1);color:var(--accent);border:1px solid rgba(79,142,247,.2)}
+
+/* ── CSV BOX ── */
+#csvBox{display:none;animation:fadeIn .3s ease}
+#csvOutput{width:100%;height:160px;font-size:11px;font-family:monospace;border:1px solid var(--border2);border-radius:var(--r2);padding:8px;background:var(--bg3);color:var(--text2);resize:vertical;outline:none}
+
+/* ── SEARCH ── */
+.search-wrap{position:relative;flex:1;max-width:260px}
+.search-wrap input{width:100%;padding:7px 12px 7px 32px;border:1px solid var(--border2);border-radius:var(--r2);background:var(--bg3);color:var(--text);font-size:13px;outline:none;transition:border-color .2s}
+.search-wrap input:focus{border-color:var(--accent)}
+.search-wrap input::placeholder{color:var(--text3)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px}
+
+/* ── RESULTS ── */
+#results{display:none;animation:fadeUp .4s ease}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:gap;gap:10px}
 </style>
 </head>
 <body>
+<div class="shell">
 
-<h2>MYTE vs MSPS Timesheet Comparator</h2>
-
-<!-- ===== ENTERPRISE ID FILTER (optional) ===== -->
-<!-- If populated, only these EIDs are compared. If empty, MYTE EIDs drive the comparison. -->
-<div style="margin-bottom:1rem">
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-    <label style="font-size:13px;color:var(--color-text-secondary,#666)">Filter by Enterprise IDs (optional):</label>
-    <button style="font-size:12px;padding:3px 10px" id="toggleEIDInput">+ Add list</button>
-  </div>
-  <div id="eidInputBox" style="display:none">
-    <textarea id="eidList" placeholder="Enter Enterprise IDs, one per line or comma separated e.g.&#10;a.kiran.abhyankar&#10;c.a.chowdary" style="width:100%;height:100px;font-size:12px;font-family:monospace;border:0.5px solid #ccc;border-radius:8px;padding:8px;background:var(--color-background-primary);color:var(--color-text-primary);resize:vertical"></textarea>
-    <div style="display:flex;gap:8px;margin-top:6px">
-      <button style="font-size:12px;padding:3px 10px" id="clearEIDBtn">Clear</button>
-      <span id="eidCount" style="font-size:12px;color:var(--color-text-secondary,#666);align-self:center"></span>
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">⏱</div>
+      <div>
+        <div class="logo-text">Timesheet<br>Comparator</div>
+        <div class="logo-sub">MYTE vs MSPS</div>
+      </div>
     </div>
-  </div>
-</div>
 
-<!-- ===== FILE UPLOAD BOXES ===== -->
-<!-- MYTE: reads from Sheet 1, row 2 is header (row 1 is report title) -->
-<!-- MSPS: reads from Sheet 2, row 1 is header -->
-<div class="upload-grid">
-  <div class="upload-box" id="myteBox" onclick="triggerUpload('myteFile')">
-    <span class="upload-tag tag-myte">MYTE (Accenture)</span>
-    <div id="myteStatus" class="upload-status">Click to upload Excel / CSV</div>
-    <input type="file" id="myteFile" accept=".xlsx,.xls,.csv" style="display:none">
-  </div>
-  <div class="upload-box" id="mspsBox" onclick="triggerUpload('mspsFile')">
-    <span class="upload-tag tag-msps">MSPS (Client)</span>
-    <div id="mspsStatus" class="upload-status">Click to upload Excel / CSV</div>
-    <input type="file" id="mspsFile" accept=".xlsx,.xls,.csv" style="display:none">
-  </div>
-</div>
+    <div class="nav-group">
+      <div class="nav-label">Workspace</div>
+      <div class="nav-item active"><span class="icon">📊</span> Dashboard</div>
+      <div class="nav-item"><span class="icon">📂</span> Upload Files</div>
+      <div class="nav-item"><span class="icon">🔍</span> Compare</div>
+      <div class="nav-item"><span class="icon">📋</span> Results</div>
+    </div>
 
-<!-- ===== MONTH / YEAR FILTER + COMPARE BUTTON ===== -->
-<div class="controls">
-  <label>Month:</label>
-  <select id="monthSel">
-    <option value="">All months</option>
-    <option value="1">January</option><option value="2">February</option>
-    <option value="3">March</option><option value="4">April</option>
-    <option value="5">May</option><option value="6">June</option>
-    <option value="7">July</option><option value="8">August</option>
-    <option value="9">September</option><option value="10">October</option>
-    <option value="11">November</option><option value="12">December</option>
-  </select>
-  <select id="yearSel">
-    <option value="2024">2024</option>
-    <option value="2025">2025</option>
-    <option value="2026" selected>2026</option>
-  </select>
-  <button class="btn-compare" id="compareBtn" disabled>Compare</button>
-</div>
 
-<!-- Error / info message area -->
-<div class="err" id="errMsg"></div>
+    <div class="sidebar-footer">
+      <div style="font-weight:600;color:var(--text2);margin-bottom:4px">How to use</div>
+      1. Upload MYTE + MSPS<br>
+      2. Select month & year<br>
+      3. Click Compare<br>
+      4. Click rows to expand
+    </div>
+  </aside>
 
-<!-- ===== RESULTS SECTION ===== -->
-<div id="results">
-  <!-- Summary metric cards -->
-  <h3>Summary</h3>
-  <div class="metrics" id="metrics"></div>
+  <!-- ── MAIN ── -->
+  <main class="main">
 
-  <!-- Resource breakdown table with filter buttons -->
-  <h3>Resource Breakdown</h3>
-  <div class="filter-row">
-    <button class="filter-btn active" id="f-all">All</button>
-    <button class="filter-btn" id="f-match">Matched Only</button>
-    <button class="filter-btn" id="f-mismatch">Mismatched Only</button>
-    <button class="btn-export" style="margin-left:auto" id="exportBtn">Export CSV</button>
-  </div>
-  <div class="table-wrap">
-    <table>
-      <thead><tr>
-        <th>Enterprise ID</th>
-        <th>MYTE Project Hours</th>
-        <th>MYTE Non-Project Hours</th>
-        <th>MYTE Total Hours</th>
-        <th>MSPS Project Hours</th>
-        <th>MSPS Non-Project Hours</th>
-        <th>MSPS Total Hours</th>
-        <th>MSPS Timesheet Status</th>
-        <th>Project Hours Difference</th>
-        <th>Status</th>
-      </tr></thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-  </div>
-</div>
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="page-title">
+        <h2>Timesheet Comparison</h2>
+        <p>Verify billable project hours per resource across MYTE and MSPS</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-sm" id="resetBtn">↺ Reset</button>
+      </div>
+    </div>
 
-<!-- ===== CSV EXPORT FALLBACK (used in sandboxed environments like Claude.ai) ===== -->
-<div id="csvBox">
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-    <span style="font-size:13px;font-weight:500">CSV ready — copy below and paste into Notepad / TextEdit, then save as .csv</span>
-    <button id="copyBtn" style="font-size:12px;padding:4px 12px">Copy to clipboard</button>
-  </div>
-  <textarea id="csvOutput" readonly style="width:100%;height:200px;font-size:11px;font-family:monospace;border:0.5px solid #ccc;border-radius:8px;padding:8px;background:var(--color-background-secondary);color:var(--color-text-primary);resize:vertical"></textarea>
+    <!-- Steps -->
+    <div class="progress-bar">
+      <div class="prog-step active" id="step1"><div class="prog-dot">1</div> Upload Files</div>
+      <div class="prog-step" id="step2"><div class="prog-dot">2</div> Configure</div>
+      <div class="prog-step" id="step3"><div class="prog-dot">3</div> Compare</div>
+      <div class="prog-step" id="step4"><div class="prog-dot">4</div> Review Results</div>
+    </div>
+
+    <!-- Upload Card -->
+    <div class="card" style="animation-delay:.05s">
+      <div class="card-header">
+        <div class="card-title"><span class="dot"></span> Upload Timesheets</div>
+        <span style="font-size:11px;color:var(--text3)">Excel (.xlsx) or CSV accepted</span>
+      </div>
+      <div class="grid2">
+        <div class="upload-box" id="myteBox" onclick="triggerUpload('myteFile')">
+          <input type="file" id="myteFile" accept=".xlsx,.xls,.csv" style="display:none">
+          <span class="upload-icon">📊</span>
+          <span class="upload-tag tag-myte">MYTE · Accenture</span>
+          <div class="upload-title">Accenture Timesheet</div>
+          <div class="upload-hint">Sheet 1 · Row 2 as header (Row 1 = title)</div>
+          <div id="myteStatus" class="upload-status" style="margin-top:8px">Click or drag to upload</div>
+        </div>
+        <div class="upload-box" id="mspsBox" onclick="triggerUpload('mspsFile')">
+          <input type="file" id="mspsFile" accept=".xlsx,.xls,.csv" style="display:none">
+          <span class="upload-icon">📋</span>
+          <span class="upload-tag tag-msps">MSPS · Client</span>
+          <div class="upload-title">Client Timesheet</div>
+          <div class="upload-hint">Sheet 2 · Row 1 as header</div>
+          <div id="mspsStatus" class="upload-status" style="margin-top:8px">Click or drag to upload</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Config Card -->
+    <div class="card" style="animation-delay:.1s">
+      <div class="card-header">
+        <div class="card-title"><span class="dot"></span> Configuration</div>
+      </div>
+
+      <!-- EID Filter -->
+      <div style="margin-bottom:1.1rem">
+        <div class="eid-toggle" id="toggleEIDInput">
+          <span id="eidArrow">▶</span> Filter by Enterprise IDs
+          <span id="eidBadge" style="display:none;background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700"></span>
+        </div>
+        <div class="eid-box" id="eidInputBox">
+          <textarea id="eidList" placeholder="Enter Enterprise IDs — one per line or comma separated&#10;e.g.  a.kiran.abhyankar, c.a.chowdary"></textarea>
+          <div class="eid-meta">
+            <button class="btn btn-ghost btn-sm" id="clearEIDBtn">Clear</button>
+            <span class="eid-count" id="eidCount"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Month + Year + Compare -->
+      <div class="controls-row">
+        <span class="ctrl-label">Period:</span>
+        <select id="monthSel">
+          <option value="">All months</option>
+          <option value="1">January</option><option value="2">February</option>
+          <option value="3">March</option><option value="4">April</option>
+          <option value="5">May</option><option value="6">June</option>
+          <option value="7">July</option><option value="8">August</option>
+          <option value="9">September</option><option value="10">October</option>
+          <option value="11">November</option><option value="12">December</option>
+        </select>
+        <select id="yearSel">
+          <option value="2024">2024</option>
+          <option value="2025">2025</option>
+          <option value="2026" selected>2026</option>
+        </select>
+        <button class="btn btn-primary" id="compareBtn" disabled>
+          <span class="spinner" id="spinner"></span>
+          <span id="compareBtnText">⚡ Run Comparison</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Message -->
+    <div class="msg" id="errMsg"></div>
+
+    <!-- Results -->
+    <div id="results">
+
+      <!-- Metric Cards -->
+      <div class="grid3" id="metrics"></div>
+
+      <!-- Table Card -->
+      <div class="card" style="animation-delay:0s">
+        <div class="section-header">
+          <div class="card-title" style="margin-bottom:0"><span class="dot"></span> Resource Breakdown</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <!-- Search -->
+            <div class="search-wrap">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="searchInput" placeholder="Search Enterprise ID…">
+            </div>
+            <button class="btn btn-green btn-sm" id="exportBtn">⬇ Export CSV</button>
+          </div>
+        </div>
+
+        <!-- Filter chips -->
+        <div class="chips" style="margin-bottom:1rem">
+          <span class="chip active" id="f-all">All</span>
+          <span class="chip match-chip" id="f-match">✅ Matched</span>
+          <span class="chip mismatch-chip" id="f-mismatch">❌ Mismatched</span>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Enterprise ID</th>
+              <th>MYTE Project Hours</th>
+              <th>MYTE Non-Project Hours</th>
+              <th>MYTE Total Hours</th>
+              <th>MSPS Project Hours</th>
+              <th>MSPS Non-Project Hours</th>
+              <th>MSPS Total Hours</th>
+              <th>MSPS Timesheet Status</th>
+              <th>Project Hours Difference</th>
+              <th>Status</th>
+            </tr></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Row count -->
+        <div style="margin-top:.75rem;font-size:11px;color:var(--text3)" id="rowCount"></div>
+      </div>
+
+      <!-- CSV Fallback -->
+      <div id="csvBox" class="card" style="margin-top:1rem">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:600;color:var(--text2)">CSV ready — copy below, paste into Notepad and save as .csv</span>
+          <button class="btn btn-ghost btn-sm" id="copyBtn">Copy to clipboard</button>
+        </div>
+        <textarea id="csvOutput" readonly></textarea>
+      </div>
+
+    </div><!-- /results -->
+  </main>
 </div>
 
 <script>
-/* ===================================================
-   STATE VARIABLES
-   - myteRows / mspsRows: parsed row data from uploaded files
-   - tableData: processed comparison results
-   - activeFilter: current table filter (all / match / mismatch)
-   - xlsxReady: tracks if the XLSX library has been loaded
-=================================================== */
-var myteRows=[], mspsRows=[], tableData=[], activeFilter='all';
+/* ── STATE ── */
+var myteRows=[],mspsRows=[],tableData=[],activeFilter='all',searchQ='';
 var xlsxReady=false;
 
-/* ===================================================
-   UTILITY: Show error / info message
-=================================================== */
-function showErr(msg){ document.getElementById('errMsg').textContent=msg; }
+/* ── UTILS ── */
+function showMsg(msg,type){
+  var el=document.getElementById('errMsg');
+  el.textContent=msg?((type==='error'?'⚠ ':type==='info'?'ℹ ':'')+msg):'';
+  el.className='msg'+(msg?' '+(type||'error'):'');
+}
+function setStep(n){
+  for(var i=1;i<=4;i++){
+    var s=document.getElementById('step'+i);
+    s.className='prog-step'+(i<n?' done':i===n?' active':'');
+  }
+}
+function round2(v){return Math.round(v*100)/100;}
 
-/* ===================================================
-   XLSX LIBRARY LOADER
-   Dynamically loads the XLSX library from CDN on first use
-=================================================== */
+/* ── XLSX LOADER ── */
 function loadXLSX(cb){
   if(xlsxReady){cb();return;}
   var s=document.createElement('script');
   s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
   s.onload=function(){xlsxReady=true;cb();};
-  s.onerror=function(){showErr('Failed to load XLSX library. Try uploading as CSV instead.');};
+  s.onerror=function(){showMsg('Failed to load XLSX library. Try CSV instead.','error');};
   document.head.appendChild(s);
 }
 
-/* ===================================================
-   FILE UPLOAD TRIGGER
-   Opens native file picker for given input element
-=================================================== */
+/* ── UPLOAD ── */
 function triggerUpload(id){
   var el=document.getElementById(id);
   el.onchange=function(){if(this.files[0]) handleFile(id,this.files[0]);};
   el.click();
 }
 
-/* ===================================================
-   SHEET TO ROWS CONVERTER
-   Converts an XLSX worksheet to an array of row objects
-   using the specified row index as the header row.
-   - headerRowIndex 1 = skip title row (MYTE)
-   - headerRowIndex 0 = use first row as header (MSPS)
-=================================================== */
-function sheetToRows(ws, headerRowIndex){
+function sheetToRows(ws,hdrIdx){
   var raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-  var hdrs=raw[headerRowIndex];
-  if(!hdrs) return [];
+  var hdrs=raw[hdrIdx]; if(!hdrs) return [];
   var rows=[];
-  for(var i=headerRowIndex+1;i<raw.length;i++){
+  for(var i=hdrIdx+1;i<raw.length;i++){
     var r=raw[i];
-    // Skip fully empty rows
-    var allEmpty=r.every(function(v){return v===''||v===null||v===undefined;});
-    if(allEmpty) continue;
+    if(r.every(function(v){return v===''||v==null;})) continue;
     var obj={};
-    hdrs.forEach(function(h,j){
-      obj[String(h).trim()]=r[j]!==undefined&&r[j]!==null?String(r[j]).trim():'';
-    });
+    hdrs.forEach(function(h,j){obj[String(h).trim()]=r[j]!=null?String(r[j]).trim():'';});
     rows.push(obj);
   }
   return rows;
 }
 
-/* ===================================================
-   FILE HANDLER
-   Handles both CSV and Excel (.xlsx/.xls) uploads.
-   MYTE: Sheet 1, header on row 2 (row 1 = report title)
-   MSPS: Sheet 2, header on row 1
-=================================================== */
 function handleFile(inputId,file){
   var isMyte=inputId==='myteFile';
-  var statusId=isMyte?'myteStatus':'mspsStatus';
-  var boxId=isMyte?'myteBox':'mspsBox';
-  document.getElementById(statusId).textContent='Loading: '+file.name;
-  showErr('');
-
+  var sid=isMyte?'myteStatus':'mspsStatus';
+  var bid=isMyte?'myteBox':'mspsBox';
+  document.getElementById(sid).innerHTML='⏳ Loading <strong>'+file.name+'</strong>…';
+  showMsg('','info');
   loadXLSX(function(){
     var reader=new FileReader();
-
     if(file.name.toLowerCase().endsWith('.csv')){
-      // --- CSV parsing (built-in, no library needed) ---
       reader.onload=function(e){
         try{
-          var lines=e.target.result.split('\n');
-          // MYTE CSV: skip first line (report title), use line 2 as headers
-          var startLine=isMyte?1:0;
-          var headers=parseCsvLine(lines[startLine]);
-          var rows=[];
-          for(var i=startLine+1;i<lines.length;i++){
-            var vals=parseCsvLine(lines[i]);
-            if(vals.join('').trim()==='') continue;
-            var obj={};
-            headers.forEach(function(h,j){obj[h.trim()]=vals[j]?vals[j].trim():'';});
-            rows.push(obj);
+          var lines=e.target.result.split('\n'),sl=isMyte?1:0;
+          var hdrs=parseCsv(lines[sl]),rows=[];
+          for(var i=sl+1;i<lines.length;i++){
+            var v=parseCsv(lines[i]); if(v.join('').trim()==='') continue;
+            var o={}; hdrs.forEach(function(h,j){o[h.trim()]=v[j]?v[j].trim():'';});
+            rows.push(o);
           }
-          storeRows(isMyte,rows,file.name,statusId,boxId);
-        }catch(ex){showErr('CSV parse error: '+ex.message);}
+          storeRows(isMyte,rows,file.name,sid,bid);
+        }catch(ex){showMsg('CSV error: '+ex.message,'error');}
       };
-      reader.onerror=function(){showErr('Could not read file.');};
       reader.readAsText(file);
-
     } else {
-      // --- Excel parsing using XLSX library ---
       reader.onload=function(e){
         try{
           var wb;
-          try{
-            wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:false,raw:false});
-          }catch(e1){
-            try{wb=XLSX.read(e.target.result,{type:'binary',cellDates:false});}
-            catch(e2){throw new Error('Could not parse Excel. Try saving as CSV. ('+e2.message+')');}
-          }
-          // MYTE uses Sheet 1 (index 0), MSPS uses Sheet 2 (index 1)
-          var sheetIdx=isMyte?0:1;
-          if(wb.SheetNames.length<=sheetIdx) sheetIdx=wb.SheetNames.length-1;
-          var ws=wb.Sheets[wb.SheetNames[sheetIdx]];
-          // MYTE header is on row index 1 (row 2), MSPS header is on row index 0 (row 1)
-          var headerRowIndex=isMyte?1:0;
-          var rows=sheetToRows(ws,headerRowIndex);
-          storeRows(isMyte,rows,file.name+' ('+wb.SheetNames[sheetIdx]+')',statusId,boxId);
-        }catch(ex){showErr('Excel parse error: '+ex.message);}
+          try{wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:false,raw:false});}
+          catch(e1){try{wb=XLSX.read(e.target.result,{type:'binary',cellDates:false});}
+          catch(e2){throw new Error('Cannot parse Excel. Try CSV. ('+e2.message+')');}}
+          var si=isMyte?0:1; if(wb.SheetNames.length<=si) si=wb.SheetNames.length-1;
+          var rows=sheetToRows(wb.Sheets[wb.SheetNames[si]],isMyte?1:0);
+          storeRows(isMyte,rows,file.name+' ('+wb.SheetNames[si]+')',sid,bid);
+        }catch(ex){showMsg('Excel error: '+ex.message,'error');}
       };
-      reader.onerror=function(){showErr('Could not read file.');};
       reader.readAsArrayBuffer(file);
     }
+    reader.onerror=function(){showMsg('Could not read file.','error');};
   });
 }
 
-/* ===================================================
-   CSV LINE PARSER
-   Handles quoted fields and commas within quotes
-=================================================== */
-function parseCsvLine(line){
-  var result=[],cur='',inQ=false;
+function parseCsv(line){
+  var res=[],cur='',q=false;
   for(var i=0;i<(line||'').length;i++){
     var c=line[i];
-    if(c==='"'){inQ=!inQ;}
-    else if(c===','&&!inQ){result.push(cur);cur='';}
-    else{cur+=c;}
+    if(c==='"'){q=!q;}else if(c===','&&!q){res.push(cur);cur='';}else cur+=c;
   }
-  result.push(cur);
-  return result;
+  res.push(cur); return res;
 }
 
-/* ===================================================
-   STORE PARSED ROWS
-   Saves parsed rows to state and enables Compare button
-   once both files are loaded
-=================================================== */
-function storeRows(isMyte,rows,name,statusId,boxId){
+function storeRows(isMyte,rows,name,sid,bid){
   if(isMyte) myteRows=rows; else mspsRows=rows;
-  document.getElementById(statusId).textContent=name+' ('+rows.length+' rows)';
-  document.getElementById(boxId).classList.add('loaded');
-  if(myteRows.length&&mspsRows.length) document.getElementById('compareBtn').disabled=false;
+  document.getElementById(sid).innerHTML='✅ <strong>'+name+'</strong><br><span style="font-size:11px">'+rows.length.toLocaleString()+' rows loaded</span>';
+  document.getElementById(bid).classList.add('loaded');
+  if(myteRows.length&&mspsRows.length){
+    document.getElementById('compareBtn').disabled=false;
+    setStep(2);
+    showMsg('Both files loaded. Configure options and run comparison.','info');
+  }
 }
 
-/* ===================================================
-   COLUMN VALUE HELPERS
-   Case-insensitive column lookup by name
-=================================================== */
+/* ── COLUMN HELPERS ── */
 function getCol(row,name){
   var k=Object.keys(row).find(function(k){return k.trim().toLowerCase()===name.toLowerCase();});
   return k?String(row[k]).trim():'';
 }
-
-/* Supports both "Enterprise ID" (MYTE) and "Resource Enterprise ID" (MSPS) */
 function getEID(row){
-  var k=Object.keys(row).find(function(k){
-    var n=k.trim().toLowerCase();
-    return n==='enterprise id'||n==='resource enterprise id';
-  });
+  var k=Object.keys(row).find(function(k){var n=k.trim().toLowerCase();return n==='enterprise id'||n==='resource enterprise id';});
   return k?String(row[k]).trim():'';
 }
-
-/* Strips $ and , before parsing numeric values */
 function getNum(row,name){
   var k=Object.keys(row).find(function(k){return k.trim().toLowerCase()===name.toLowerCase();});
   if(!k) return 0;
@@ -348,64 +519,32 @@ function getNum(row,name){
   return isNaN(v)?0:v;
 }
 
-/* ===================================================
-   DATE PARSERS
-   Both parsers handle:
-   - Excel serial numbers (e.g. 46113)
-   - String dates in various formats
-   MYTE format: D/M/YYYY  e.g. 1/4/2026
-   MSPS format: M/D/YYYY  e.g. 04/01/2026
-=================================================== */
-function parseMYTEMonth(val){
+/* ── DATE PARSERS ── */
+function parseSerial(s){
+  var n=Number(s);
+  if(!isNaN(n)&&n>40000){var d=new Date(Math.round((n-25569)*86400*1000));return{m:d.getUTCMonth()+1,y:d.getUTCFullYear()};}
+  return null;
+}
+function parseMYTE(val){
   if(!val) return null;
   var s=String(val).trim();
-  // Handle Excel serial date numbers
-  var n=Number(s);
-  if(!isNaN(n)&&n>40000){
-    var d=new Date(Math.round((n-25569)*86400*1000));
-    return {m:d.getUTCMonth()+1,y:d.getUTCFullYear()};
-  }
-  // Handle string dates (D/M/YYYY)
+  var serial=parseSerial(s); if(serial) return serial;
   s=s.split(' ')[0].split('T')[0];
-  var parts=s.split(/[\/\-\.]/);
-  if(parts.length>=3){
-    var a=parseInt(parts[0]),b=parseInt(parts[1]),c=parseInt(parts[2]);
-    if(c>31) return {m:b,y:c};
-    if(a>31) return {m:b,y:a};
-  }
+  var p=s.split(/[\/\-\.]/);
+  if(p.length>=3){var a=+p[0],b=+p[1],c=+p[2];if(c>31)return{m:b,y:c};if(a>31)return{m:b,y:a};}
+  return null;
+}
+function parseMSPS(val){
+  if(!val) return null;
+  var s=String(val).trim();
+  var serial=parseSerial(s); if(serial) return serial;
+  s=s.split(' ')[0].split('T')[0];
+  var p=s.split(/[\/\-\.]/);
+  if(p.length>=3){var a=+p[0],b=+p[1],c=+p[2];if(c>31)return{m:a,y:c};if(a>31)return{m:b,y:a};}
   return null;
 }
 
-function parseMSPSMonth(val){
-  if(!val) return null;
-  var s=String(val).trim();
-  // Handle Excel serial date numbers
-  var n=Number(s);
-  if(!isNaN(n)&&n>40000){
-    var d=new Date(Math.round((n-25569)*86400*1000));
-    return {m:d.getUTCMonth()+1,y:d.getUTCFullYear()};
-  }
-  // Handle string dates (M/D/YYYY)
-  s=s.split(' ')[0].split('T')[0];
-  var parts=s.split(/[\/\-\.]/);
-  if(parts.length>=3){
-    var a=parseInt(parts[0]),b=parseInt(parts[1]),c=parseInt(parts[2]);
-    if(c>31) return {m:a,y:c};
-    if(a>31) return {m:b,y:a};
-  }
-  return null;
-}
-
-/* ===================================================
-   UTILITY: Round to 2 decimal places
-=================================================== */
-function round2(v){return Math.round(v*100)/100;}
-
-/* ===================================================
-   GET FILTER EID LIST
-   Reads the optional EID filter textarea.
-   Returns a Set of EIDs or null if empty.
-=================================================== */
+/* ── FILTER EIDs ── */
 function getFilterEIDs(){
   var raw=document.getElementById('eidList').value.trim();
   if(!raw) return null;
@@ -413,240 +552,219 @@ function getFilterEIDs(){
   return ids.length?new Set(ids):null;
 }
 
-/* ===================================================
-   MAIN COMPARE FUNCTION
-   1. Determines which EIDs to include:
-      - If filter list provided: use those EIDs
-      - Otherwise: use only EIDs found in MYTE
-   2. Aggregates MYTE hours by EID:
-      - BAL3 = "EXTERNAL CHARGEABLE SERVICES" → Project
-      - Anything else → Non-Project
-   3. Aggregates MSPS hours by EID:
-      - Timesheet Line Project Name = "Administrative" → Non-Project
-      - Blank project name → Skip row entirely
-      - Anything else → Project
-   4. Builds result rows and renders summary + table
-=================================================== */
+/* ── COMPARE ── */
 function compare(){
-  showErr('');
+  showMsg('');
   var mon=parseInt(document.getElementById('monthSel').value)||null;
   var yr=parseInt(document.getElementById('yearSel').value);
   var filterEIDs=getFilterEIDs();
+  document.getElementById('spinner').style.display='inline-block';
+  document.getElementById('compareBtnText').textContent='Running…';
+  document.getElementById('compareBtn').disabled=true;
+  setStep(3);
+  setTimeout(function(){
+    try{doCompare(mon,yr,filterEIDs);}catch(e){showMsg('Error: '+e.message,'error');}
+    document.getElementById('spinner').style.display='none';
+    document.getElementById('compareBtnText').textContent='⚡ Run Comparison';
+    document.getElementById('compareBtn').disabled=false;
+  },50);
+}
 
-  // Step 1: Build EID set from MYTE (filtered if list provided)
+function doCompare(mon,yr,filterEIDs){
   var myteEIDs=new Set();
-  myteRows.forEach(function(r){
-    var e=getEID(r);
-    if(e&&(!filterEIDs||filterEIDs.has(e))) myteEIDs.add(e);
-  });
-
-  // If filter list provided, also include those EIDs even if not in MYTE
+  myteRows.forEach(function(r){var e=getEID(r);if(e&&(!filterEIDs||filterEIDs.has(e))) myteEIDs.add(e);});
   var allEIDs=new Set(myteEIDs);
-  if(filterEIDs){
-    filterEIDs.forEach(function(e){ allEIDs.add(e); });
-  }
-
+  if(filterEIDs) filterEIDs.forEach(function(e){allEIDs.add(e);});
   if(!allEIDs.size){
-    var sampleCols=myteRows.length>0?Object.keys(myteRows[0]).slice(0,6).join(' | '):'no rows';
-    var sampleVals=myteRows.length>0?getEID(myteRows[0]):'n/a';
-    showErr('No Enterprise IDs found. MYTE columns detected: '+sampleCols+' | First EID value: "'+sampleVals+'"');
-    return;
+    showMsg('No Enterprise IDs found. Check MYTE columns: '+( myteRows.length?Object.keys(myteRows[0]).slice(0,5).join(', '):'no rows'),'error');
+    setStep(2); return;
   }
-
-  // Step 2: Aggregate MYTE hours per EID
   var myteMap={};
   myteRows.forEach(function(r){
     var eid=getEID(r); if(!eid||!allEIDs.has(eid)) return;
-    if(mon){
-      var d=parseMYTEMonth(getCol(r,'Date'));
-      if(!d||d.m!==mon||d.y!==yr) return;
-    }
+    if(mon){var d=parseMYTE(getCol(r,'Date'));if(!d||d.m!==mon||d.y!==yr) return;}
     var bal3=getCol(r,'BAL3').toUpperCase();
     var hrs=getNum(r,'Hours');
     if(!myteMap[eid]) myteMap[eid]={proj:0,non:0};
     if(bal3==='EXTERNAL CHARGEABLE SERVICES') myteMap[eid].proj+=hrs;
     else myteMap[eid].non+=hrs;
   });
-
-  // Step 3: Aggregate MSPS hours per EID
   var mspsMap={};
   mspsRows.forEach(function(r){
     var eid=getEID(r); if(!eid||!allEIDs.has(eid)) return;
-    if(mon){
-      var d=parseMSPSMonth(getCol(r,'Timesheet Period Start Date')||getCol(r,'Date'));
-      if(!d||d.m!==mon||d.y!==yr) return;
-    }
-    var projName=getCol(r,'Timesheet Line Project Name');
-    if(!projName.trim()) return; // Skip blank project name rows
+    if(mon){var d=parseMSPS(getCol(r,'Timesheet Period Start Date')||getCol(r,'Date'));if(!d||d.m!==mon||d.y!==yr) return;}
+    var proj=getCol(r,'Timesheet Line Project Name');
+    if(!proj.trim()) return;
     var hrs=getNum(r,'Timesheet Hours');
     if(!mspsMap[eid]) mspsMap[eid]={proj:0,non:0,status:''};
-    if(projName.trim().toLowerCase()==='administrative') mspsMap[eid].non+=hrs;
+    if(proj.trim().toLowerCase()==='administrative') mspsMap[eid].non+=hrs;
     else mspsMap[eid].proj+=hrs;
-    // Capture first non-empty Timesheet Status for this EID
     if(!mspsMap[eid].status) mspsMap[eid].status=getCol(r,'Timesheet Status');
   });
-
   if(!Object.keys(myteMap).length&&!Object.keys(mspsMap).length){
-    showErr('No data found for selected month/year. Try "All months" or check the Date column format.');
-    return;
+    showMsg('No data found for selected period. Try "All months" or check date format.','error');
+    setStep(2); return;
   }
-
-  // Step 4: Build result rows for all EIDs
   tableData=Array.from(allEIDs).map(function(eid){
     var m=myteMap[eid]||{proj:0,non:0};
     var s=mspsMap[eid]||{proj:0,non:0,status:''};
     var diff=round2(m.proj-s.proj);
     return{eid:eid,mp:round2(m.proj),mn:round2(m.non),sp:round2(s.proj),sn:round2(s.non),status:s.status||'',diff:diff,match:diff===0};
   });
-
-  renderMetrics();
-  renderTable();
+  searchQ='';
+  document.getElementById('searchInput').value='';
+  renderMetrics(); renderTable();
   document.getElementById('results').style.display='block';
   document.getElementById('csvBox').style.display='none';
+  setStep(4);
+  showMsg('');
+  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-/* ===================================================
-   RENDER SUMMARY METRIC CARDS
-=================================================== */
+/* ── METRICS ── */
 function renderMetrics(){
   var total=tableData.length,matched=tableData.filter(function(r){return r.match;}).length;
   var tMP=tableData.reduce(function(a,r){return a+r.mp;},0);
   var tSP=tableData.reduce(function(a,r){return a+r.sp;},0);
   var tMN=tableData.reduce(function(a,r){return a+r.mn;},0);
   var tSN=tableData.reduce(function(a,r){return a+r.sn;},0);
-  document.getElementById('metrics').innerHTML=
-    mc('Total Resources',total,'')+
-    mc('Matched',matched,'color:#3B6D11')+
-    mc('Mismatched',total-matched,'color:#A32D2D')+
-    mc('MYTE Project Hours',tMP.toFixed(1),'')+
-    mc('MSPS Project Hours',tSP.toFixed(1),'')+
-    mc('MYTE Non-Project Hours',tMN.toFixed(1),'')+
-    mc('MSPS Non-Project Hours',tSN.toFixed(1),'');
+  var pct=total?Math.round(matched/total*100):0;
+  var cards=[
+    {l:'Total Resources',v:total,s:'',c:'blue',d:'All EIDs compared'},
+    {l:'Matched',v:matched,s:pct+'% match rate',c:'green',d:''},
+    {l:'Mismatched',v:total-matched,s:'Require review',c:'red',d:''},
+    {l:'MYTE Project Hrs',v:tMP.toFixed(1),s:'Chargeable',c:'indigo',d:''},
+    {l:'MSPS Project Hrs',v:tSP.toFixed(1),s:'Billable',c:'teal',d:''},
+    {l:'MYTE Non-Project',v:tMN.toFixed(1),s:'Internal',c:'amber',d:''},
+    {l:'MSPS Non-Project',v:tSN.toFixed(1),s:'Administrative',c:'orange',d:''},
+  ];
+  document.getElementById('metrics').innerHTML=cards.map(function(c,i){
+    return '<div class="metric-card '+c.c+'" style="animation-delay:'+(i*.05)+'s">'+
+      '<div class="metric-label">'+c.l+'</div>'+
+      '<div class="metric-val">'+c.v+'</div>'+
+      (c.s?'<div class="metric-sub">'+c.s+'</div>':'')+
+      '</div>';
+  }).join('');
 }
 
-/* Helper: Build a single metric card HTML */
-function mc(lbl,val,style){
-  return '<div class="metric-card"><div class="metric-label">'+lbl+'</div><div class="metric-val" style="'+style+'">'+val+'</div></div>';
-}
-
-/* ===================================================
-   SET ACTIVE FILTER
-   Filters table rows by match status
-=================================================== */
+/* ── TABLE ── */
 function setFilter(f){
   activeFilter=f;
   ['all','match','mismatch'].forEach(function(x){
-    document.getElementById('f-'+x).classList.toggle('active',x===f);
+    var el=document.getElementById('f-'+x);
+    el.className='chip'+(x==='match'?' match-chip':x==='mismatch'?' mismatch-chip':'')+(f===x?' active':'');
   });
   renderTable();
 }
 
-/* ===================================================
-   RENDER RESULTS TABLE
-   Applies active filter and renders rows
-   Diff colour: green = 0, red = positive, amber = negative
-=================================================== */
 function renderTable(){
+  var q=searchQ.toLowerCase();
   var rows=tableData.filter(function(r){
-    if(activeFilter==='match') return r.match;
-    if(activeFilter==='mismatch') return !r.match;
+    if(activeFilter==='match'&&!r.match) return false;
+    if(activeFilter==='mismatch'&&r.match) return false;
+    if(q&&r.eid.toLowerCase().indexOf(q)===-1) return false;
     return true;
   });
-  document.getElementById('tableBody').innerHTML=rows.map(function(r){
+  document.getElementById('rowCount').textContent='Showing '+rows.length+' of '+tableData.length+' resources';
+  if(!rows.length){
+    document.getElementById('tableBody').innerHTML='<tr><td colspan="10" style="padding:2rem;text-align:center;color:var(--text3)">No results found.</td></tr>';
+    return;
+  }
+  var html='';
+  rows.forEach(function(r){
     var diffStr=r.diff>0?'+'+r.diff:String(r.diff);
-    var diffColor=r.diff===0?'#3B6D11':r.diff>0?'#A32D2D':'#854F0B';
-    return '<tr><td>'+r.eid+'</td>'+
-      '<td>'+r.mp+'</td><td>'+r.mn+'</td><td>'+round2(r.mp+r.mn)+'</td>'+
-      '<td>'+r.sp+'</td><td>'+r.sn+'</td><td>'+round2(r.sp+r.sn)+'</td>'+
+    var diffColor=r.diff===0?'var(--green)':r.diff>0?'var(--red)':'var(--amber)';
+    html+='<tr>'+
+      '<td>'+r.eid+'</td>'+
+      '<td>'+r.mp+'</td><td>'+r.mn+'</td><td style="font-weight:600">'+round2(r.mp+r.mn)+'</td>'+
+      '<td>'+r.sp+'</td><td>'+r.sn+'</td><td style="font-weight:600">'+round2(r.sp+r.sn)+'</td>'+
       '<td>'+r.status+'</td>'+
-      '<td style="color:'+diffColor+'">'+diffStr+'</td>'+
-      '<td><span class="badge '+(r.match?'match':'mismatch')+'">'+(r.match?'Match':'Mismatch')+'</span></td></tr>';
-  }).join('')||'<tr><td colspan="10" style="padding:1rem;color:#888">No rows for this filter.</td></tr>';
+      '<td style="color:'+diffColor+';font-weight:700">'+diffStr+'</td>'+
+      '<td><span class="badge '+(r.match?'match':'mismatch')+'">'+(r.match?'Match':'Mismatch')+'</span></td>'+
+      '</tr>';
+  });
+  document.getElementById('tableBody').innerHTML=html;
 }
 
-/* ===================================================
-   EXPORT CSV
-   On GitHub Pages / real browser: triggers direct download
-   In Claude.ai sandbox: falls back to copy-paste text box
-=================================================== */
+/* ── EXPORT CSV ── */
 function exportCSV(){
   if(!tableData.length) return;
   var hdr='Enterprise ID,MYTE Project Hours,MYTE Non-Project Hours,MYTE Total Hours,MSPS Project Hours,MSPS Non-Project Hours,MSPS Total Hours,MSPS Timesheet Status,Project Hours Difference,Status\n';
   var body=tableData.map(function(r){
     return[r.eid,r.mp,r.mn,round2(r.mp+r.mn),r.sp,r.sn,round2(r.sp+r.sn),r.status,r.diff,r.match?'Match':'Mismatch'].join(',');
   }).join('\n');
-  var csv=hdr+body;
-  var downloaded=false;
+  var csv=hdr+body, dl=false;
   try{
     var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
-    a.href=url; a.download='timesheet_comparison.csv';
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    downloaded=true;
+    a.href=url;a.download='timesheet_comparison.csv';
+    document.body.appendChild(a);a.click();
+    document.body.removeChild(a);URL.revokeObjectURL(url);dl=true;
   }catch(e){}
-  // Fallback: show copy-paste box for sandboxed environments
-  if(!downloaded){
-    var box=document.getElementById('csvOutput');
-    box.value=csv;
+  if(!dl){
+    document.getElementById('csvOutput').value=csv;
     document.getElementById('csvBox').style.display='block';
-    box.select(); box.focus();
-    showErr('Direct download not supported here — copy the text below and save as .csv');
+    document.getElementById('csvOutput').select();
+    showMsg('Direct download blocked — copy the CSV text below and save as .csv','info');
   }
 }
 
-/* ===================================================
-   COPY CSV TO CLIPBOARD
-   Tries execCommand first, then navigator.clipboard API
-=================================================== */
+/* ── COPY ── */
 function copyCSV(){
   var box=document.getElementById('csvOutput');
-  box.select();
-  box.setSelectionRange(0,99999);
-  var copied=false;
-  try{copied=document.execCommand('copy');}catch(e){}
-  if(copied){
-    document.getElementById('copyBtn').textContent='Copied!';
-    setTimeout(function(){document.getElementById('copyBtn').textContent='Copy to clipboard';},2500);
-  } else {
-    navigator.clipboard&&navigator.clipboard.writeText(box.value).then(function(){
-      document.getElementById('copyBtn').textContent='Copied!';
-      setTimeout(function(){document.getElementById('copyBtn').textContent='Copy to clipboard';},2500);
-    }).catch(function(){showErr('Select all text in the box (Ctrl+A) and copy manually (Ctrl+C).');});
-  }
+  box.select();box.setSelectionRange(0,99999);
+  var ok=false; try{ok=document.execCommand('copy');}catch(e){}
+  if(ok){document.getElementById('copyBtn').textContent='✅ Copied!';setTimeout(function(){document.getElementById('copyBtn').textContent='Copy to clipboard';},2500);}
+  else{navigator.clipboard&&navigator.clipboard.writeText(box.value)
+    .then(function(){document.getElementById('copyBtn').textContent='✅ Copied!';setTimeout(function(){document.getElementById('copyBtn').textContent='Copy to clipboard';},2500);})
+    .catch(function(){showMsg('Select all (Ctrl+A) and copy manually (Ctrl+C).','info');});}
 }
 
-/* ===================================================
-   EVENT LISTENERS
-=================================================== */
-// Toggle EID filter input box
+/* ── RESET ── */
+function reset(){
+  myteRows=[];mspsRows=[];tableData=[];activeFilter='all';searchQ='';
+  ['myteFile','mspsFile'].forEach(function(id){document.getElementById(id).value='';});
+  ['myteBox','mspsBox'].forEach(function(id){document.getElementById(id).classList.remove('loaded');});
+  document.getElementById('myteStatus').innerHTML='Click or drag to upload';
+  document.getElementById('mspsStatus').innerHTML='Click or drag to upload';
+  document.getElementById('compareBtn').disabled=true;
+  document.getElementById('results').style.display='none';
+  document.getElementById('csvBox').style.display='none';
+  document.getElementById('eidList').value='';
+  document.getElementById('eidCount').textContent='';
+  document.getElementById('eidBadge').style.display='none';
+  showMsg('');setStep(1);
+}
+
+/* ── EVENT LISTENERS ── */
 document.getElementById('toggleEIDInput').onclick=function(){
   var box=document.getElementById('eidInputBox');
-  var visible=box.style.display!=='none';
-  box.style.display=visible?'none':'block';
-  this.textContent=visible?'+ Add list':'- Hide list';
+  var vis=box.style.display!=='none';
+  box.style.display=vis?'none':'block';
+  document.getElementById('eidArrow').textContent=vis?'▶':'▼';
 };
-
-// Clear EID filter list
 document.getElementById('clearEIDBtn').onclick=function(){
   document.getElementById('eidList').value='';
   document.getElementById('eidCount').textContent='';
+  document.getElementById('eidBadge').style.display='none';
 };
-
-// Update EID count label as user types
 document.getElementById('eidList').oninput=function(){
   var ids=this.value.trim().split(/[\n,]+/).map(function(s){return s.trim();}).filter(Boolean);
-  document.getElementById('eidCount').textContent=ids.length?ids.length+' ID'+(ids.length>1?'s':'')+' entered':'';
+  var n=ids.length;
+  document.getElementById('eidCount').textContent=n?n+' ID'+(n>1?'s':'')+' entered':'';
+  var badge=document.getElementById('eidBadge');
+  if(n){badge.style.display='inline';badge.textContent=n;}
+  else{badge.style.display='none';}
 };
-
 document.getElementById('compareBtn').onclick=compare;
 document.getElementById('f-all').onclick=function(){setFilter('all');};
 document.getElementById('f-match').onclick=function(){setFilter('match');};
 document.getElementById('f-mismatch').onclick=function(){setFilter('mismatch');};
 document.getElementById('exportBtn').onclick=exportCSV;
 document.getElementById('copyBtn').onclick=copyCSV;
+document.getElementById('resetBtn').onclick=reset;
+document.getElementById('searchInput').oninput=function(){searchQ=this.value.trim();renderTable();};
 </script>
 </body>
 </html>
