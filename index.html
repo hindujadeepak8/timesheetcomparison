@@ -3,70 +3,72 @@
 <head>
 <meta charset="UTF-8">
 <style>
-/* ── Reset & base typography ──────────────────────────── */
+/* ===== RESET & BASE ===== */
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:sans-serif;font-size:14px;color:var(--color-text-primary);background:transparent;padding:1rem}
 h2{font-size:18px;font-weight:500;margin-bottom:1rem}
 h3{font-size:15px;font-weight:500;margin-bottom:.75rem}
 
-/* ── File upload grid (two side-by-side drop zones) ───── */
+/* ===== UPLOAD BOXES ===== */
 .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem}
 .upload-box{border:1.5px dashed #ccc;border-radius:10px;padding:1.25rem;text-align:center;cursor:pointer;transition:background .15s}
 .upload-box:hover{background:var(--color-background-secondary,#f5f5f5)}
-.upload-box.loaded{border-style:solid;border-color:#1D9E75} /* solid green border once a file is loaded */
-
-/* ── Source labels (MYTE = blue, MSPS = green) ────────── */
+.upload-box.loaded{border-style:solid;border-color:#1D9E75}
 .upload-tag{font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;display:inline-block;margin-bottom:6px}
 .tag-myte{background:#B5D4F4;color:#0C447C}
 .tag-msps{background:#9FE1CB;color:#085041}
 .upload-status{font-size:13px;color:var(--color-text-secondary,#666);margin-top:4px;word-break:break-all}
 
-/* ── Controls bar (month/year selects + Compare button) ── */
+/* ===== CONTROLS ===== */
 .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
 .controls label{font-size:13px;color:var(--color-text-secondary,#666)}
 select{padding:6px 10px;border:0.5px solid #ccc;border-radius:8px;background:var(--color-background-primary,#fff);color:var(--color-text-primary,#000);font-size:13px}
+
+/* ===== BUTTONS ===== */
 button{padding:7px 16px;border:0.5px solid #ccc;border-radius:8px;background:var(--color-background-primary,#fff);color:var(--color-text-primary,#000);font-size:13px;cursor:pointer}
 button:hover{background:var(--color-background-secondary,#f0f0f0)}
 button:disabled{opacity:.4;cursor:not-allowed}
 .btn-compare{background:#E6F1FB;color:#185FA5;border-color:#378ADD;font-weight:500}
 .btn-export{background:#EAF3DE;color:#3B6D11;border-color:#639922}
 
-/* ── Inline error message bar ─────────────────────────── */
+/* ===== ERROR / STATUS MESSAGE ===== */
 .err{color:#A32D2D;font-size:13px;padding:.5rem 0;min-height:1.5rem}
 
-/* ── Summary metric cards ─────────────────────────────── */
+/* ===== SUMMARY METRIC CARDS ===== */
 .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.5rem}
 .metric-card{background:var(--color-background-secondary,#f5f5f5);border-radius:8px;padding:.75rem 1rem}
 .metric-label{font-size:11px;color:var(--color-text-secondary,#666);margin-bottom:4px}
 .metric-val{font-size:22px;font-weight:500}
 
-/* ── Comparison results table ─────────────────────────── */
-/* max-height + overflow-y makes the body scroll while headers stay visible */
+/* ===== RESULTS TABLE (sticky header + frozen first column) ===== */
 .table-wrap{overflow-x:auto;max-height:480px;overflow-y:auto;border:0.5px solid #ddd;border-radius:8px}
 table{width:100%;border-collapse:collapse;font-size:13px}
-/* sticky top: header row stays fixed when the user scrolls vertically */
 th{text-align:left;padding:8px 10px;border-bottom:1px solid #ddd;font-weight:500;color:var(--color-text-secondary,#555);white-space:nowrap;position:sticky;top:0;background:var(--color-background-primary,#fff);z-index:2}
-/* z-index:3 on the corner cell so it overlaps both the sticky column and sticky header */
 th:first-child{position:sticky;left:0;top:0;z-index:3;background:var(--color-background-primary,#fff)}
 td{padding:7px 10px;border-bottom:0.5px solid #eee;white-space:nowrap}
-/* sticky left: Enterprise ID column stays fixed when the user scrolls horizontally */
 td:first-child{position:sticky;left:0;background:var(--color-background-primary,#fff);z-index:1;font-weight:500;border-right:1px solid #eee}
+
+/* ===== MATCH / MISMATCH BADGES ===== */
 .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
 .match{background:#EAF3DE;color:#3B6D11}
 .mismatch{background:#FCEBEB;color:#A32D2D}
 
-/* ── Results & CSV export panels (hidden until triggered) ─ */
+/* ===== FILTER BUTTONS ===== */
 #results{display:none;margin-top:1rem}
 .filter-row{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
 .filter-btn{font-size:12px;padding:4px 12px}
 .filter-btn.active{background:#E6F1FB;color:#185FA5;border-color:#378ADD}
+
+/* ===== CSV EXPORT TEXT BOX (fallback for sandboxed environments) ===== */
 #csvBox{display:none;margin-top:1rem}
 </style>
 </head>
 <body>
+
 <h2>MYTE vs MSPS Timesheet Comparator</h2>
 
-<!-- ── Optional Enterprise ID filter (collapsible) ───────────── -->
+<!-- ===== ENTERPRISE ID FILTER (optional) ===== -->
+<!-- If populated, only these EIDs are compared. If empty, MYTE EIDs drive the comparison. -->
 <div style="margin-bottom:1rem">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
     <label style="font-size:13px;color:var(--color-text-secondary,#666)">Filter by Enterprise IDs (optional):</label>
@@ -81,7 +83,9 @@ td:first-child{position:sticky;left:0;background:var(--color-background-primary,
   </div>
 </div>
 
-<!-- ── File upload zones: MYTE (left) and MSPS (right) ───────── -->
+<!-- ===== FILE UPLOAD BOXES ===== -->
+<!-- MYTE: reads from Sheet 1, row 2 is header (row 1 is report title) -->
+<!-- MSPS: reads from Sheet 2, row 1 is header -->
 <div class="upload-grid">
   <div class="upload-box" id="myteBox" onclick="triggerUpload('myteFile')">
     <span class="upload-tag tag-myte">MYTE (Accenture)</span>
@@ -95,7 +99,7 @@ td:first-child{position:sticky;left:0;background:var(--color-background-primary,
   </div>
 </div>
 
-<!-- ── Month / year selectors and Compare trigger ────────────── -->
+<!-- ===== MONTH / YEAR FILTER + COMPARE BUTTON ===== -->
 <div class="controls">
   <label>Month:</label>
   <select id="monthSel">
@@ -114,39 +118,44 @@ td:first-child{position:sticky;left:0;background:var(--color-background-primary,
   </select>
   <button class="btn-compare" id="compareBtn" disabled>Compare</button>
 </div>
+
+<!-- Error / info message area -->
 <div class="err" id="errMsg"></div>
 
-<!-- ── Results: summary metric cards + filterable data table ──── -->
+<!-- ===== RESULTS SECTION ===== -->
 <div id="results">
+  <!-- Summary metric cards -->
   <h3>Summary</h3>
   <div class="metrics" id="metrics"></div>
-  <h3>Resource breakdown</h3>
+
+  <!-- Resource breakdown table with filter buttons -->
+  <h3>Resource Breakdown</h3>
   <div class="filter-row">
     <button class="filter-btn active" id="f-all">All</button>
-    <button class="filter-btn" id="f-match">Matched only</button>
-    <button class="filter-btn" id="f-mismatch">Mismatched only</button>
+    <button class="filter-btn" id="f-match">Matched Only</button>
+    <button class="filter-btn" id="f-mismatch">Mismatched Only</button>
     <button class="btn-export" style="margin-left:auto" id="exportBtn">Export CSV</button>
   </div>
   <div class="table-wrap">
     <table>
       <thead><tr>
-        <th>Enterprise ID</th>       <!-- sticky left + sticky top corner cell -->
-        <th>MYTE Proj Hrs</th>
-        <th>MYTE Non-Proj Hrs</th>
-        <th>MYTE Total</th>
-        <th>MSPS Proj Hrs</th>
-        <th>MSPS Non-Proj Hrs</th>
-        <th>MSPS Total</th>
-        <th>TS Status</th>           <!-- MSPS Timesheet approval status -->
-        <th>Diff</th>                <!-- MYTE project hrs minus MSPS project hrs -->
-        <th>Status</th>              <!-- Match / Mismatch badge -->
+        <th>Enterprise ID</th>
+        <th>MYTE Project Hours</th>
+        <th>MYTE Non-Project Hours</th>
+        <th>MYTE Total Hours</th>
+        <th>MSPS Project Hours</th>
+        <th>MSPS Non-Project Hours</th>
+        <th>MSPS Total Hours</th>
+        <th>MSPS Timesheet Status</th>
+        <th>Project Hours Difference</th>
+        <th>Status</th>
       </tr></thead>
       <tbody id="tableBody"></tbody>
     </table>
   </div>
 </div>
 
-<!-- ── Fallback CSV panel shown when Blob download is blocked ─── -->
+<!-- ===== CSV EXPORT FALLBACK (used in sandboxed environments like Claude.ai) ===== -->
 <div id="csvBox">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
     <span style="font-size:13px;font-weight:500">CSV ready — copy below and paste into Notepad / TextEdit, then save as .csv</span>
@@ -156,14 +165,25 @@ td:first-child{position:sticky;left:0;background:var(--color-background-primary,
 </div>
 
 <script>
-/* ── Global state ────────────────────────────────────────────── */
+/* ===================================================
+   STATE VARIABLES
+   - myteRows / mspsRows: parsed row data from uploaded files
+   - tableData: processed comparison results
+   - activeFilter: current table filter (all / match / mismatch)
+   - xlsxReady: tracks if the XLSX library has been loaded
+=================================================== */
 var myteRows=[], mspsRows=[], tableData=[], activeFilter='all';
-var xlsxReady=false; // tracks whether the SheetJS library has been injected into the page
+var xlsxReady=false;
 
-/* Display an error message in the dedicated error bar. Pass '' to clear it. */
+/* ===================================================
+   UTILITY: Show error / info message
+=================================================== */
 function showErr(msg){ document.getElementById('errMsg').textContent=msg; }
 
-/* Lazily inject the SheetJS (xlsx) library from CDN the first time it is needed. */
+/* ===================================================
+   XLSX LIBRARY LOADER
+   Dynamically loads the XLSX library from CDN on first use
+=================================================== */
 function loadXLSX(cb){
   if(xlsxReady){cb();return;}
   var s=document.createElement('script');
@@ -173,19 +193,23 @@ function loadXLSX(cb){
   document.head.appendChild(s);
 }
 
-/* Programmatically open the file picker for a hidden <input type="file"> element. */
+/* ===================================================
+   FILE UPLOAD TRIGGER
+   Opens native file picker for given input element
+=================================================== */
 function triggerUpload(id){
   var el=document.getElementById(id);
   el.onchange=function(){if(this.files[0]) handleFile(id,this.files[0]);};
   el.click();
 }
 
-/*
- * Convert an XLSX worksheet to an array of plain row objects.
- * headerRowIndex: 0-based index of the row containing column headers.
- *   MYTE files have a report-title row above headers → index 1.
- *   MSPS files start headers on row 0.
- */
+/* ===================================================
+   SHEET TO ROWS CONVERTER
+   Converts an XLSX worksheet to an array of row objects
+   using the specified row index as the header row.
+   - headerRowIndex 1 = skip title row (MYTE)
+   - headerRowIndex 0 = use first row as header (MSPS)
+=================================================== */
 function sheetToRows(ws, headerRowIndex){
   var raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
   var hdrs=raw[headerRowIndex];
@@ -193,7 +217,7 @@ function sheetToRows(ws, headerRowIndex){
   var rows=[];
   for(var i=headerRowIndex+1;i<raw.length;i++){
     var r=raw[i];
-    // Skip rows that are entirely blank
+    // Skip fully empty rows
     var allEmpty=r.every(function(v){return v===''||v===null||v===undefined;});
     if(allEmpty) continue;
     var obj={};
@@ -205,24 +229,28 @@ function sheetToRows(ws, headerRowIndex){
   return rows;
 }
 
-/*
- * Read the uploaded file, detect format (CSV vs Excel),
- * parse it into row objects, and hand off to storeRows().
- */
+/* ===================================================
+   FILE HANDLER
+   Handles both CSV and Excel (.xlsx/.xls) uploads.
+   MYTE: Sheet 1, header on row 2 (row 1 = report title)
+   MSPS: Sheet 2, header on row 1
+=================================================== */
 function handleFile(inputId,file){
   var isMyte=inputId==='myteFile';
   var statusId=isMyte?'myteStatus':'mspsStatus';
   var boxId=isMyte?'myteBox':'mspsBox';
   document.getElementById(statusId).textContent='Loading: '+file.name;
   showErr('');
+
   loadXLSX(function(){
     var reader=new FileReader();
+
     if(file.name.toLowerCase().endsWith('.csv')){
-      // ── CSV branch ────────────────────────────────────────────
+      // --- CSV parsing (built-in, no library needed) ---
       reader.onload=function(e){
         try{
           var lines=e.target.result.split('\n');
-          // MYTE CSVs have a non-data title line at index 0; skip it
+          // MYTE CSV: skip first line (report title), use line 2 as headers
           var startLine=isMyte?1:0;
           var headers=parseCsvLine(lines[startLine]);
           var rows=[];
@@ -238,21 +266,23 @@ function handleFile(inputId,file){
       };
       reader.onerror=function(){showErr('Could not read file.');};
       reader.readAsText(file);
+
     } else {
-      // ── Excel branch (.xlsx / .xls) ───────────────────────────
+      // --- Excel parsing using XLSX library ---
       reader.onload=function(e){
         try{
           var wb;
-          // Try modern ArrayBuffer parsing first; fall back to legacy binary mode for older .xls files
-          try{wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:false,raw:false});}
-          catch(e1){
+          try{
+            wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:false,raw:false});
+          }catch(e1){
             try{wb=XLSX.read(e.target.result,{type:'binary',cellDates:false});}
             catch(e2){throw new Error('Could not parse Excel. Try saving as CSV. ('+e2.message+')');}
           }
-          // MYTE data is on sheet 0; MSPS data is on sheet 1 (fall back to last sheet if missing)
+          // MYTE uses Sheet 1 (index 0), MSPS uses Sheet 2 (index 1)
           var sheetIdx=isMyte?0:1;
           if(wb.SheetNames.length<=sheetIdx) sheetIdx=wb.SheetNames.length-1;
           var ws=wb.Sheets[wb.SheetNames[sheetIdx]];
+          // MYTE header is on row index 1 (row 2), MSPS header is on row index 0 (row 1)
           var headerRowIndex=isMyte?1:0;
           var rows=sheetToRows(ws,headerRowIndex);
           storeRows(isMyte,rows,file.name+' ('+wb.SheetNames[sheetIdx]+')',statusId,boxId);
@@ -264,10 +294,10 @@ function handleFile(inputId,file){
   });
 }
 
-/*
- * Parse a single CSV line into an array of field strings.
- * Handles double-quoted fields that may contain commas.
- */
+/* ===================================================
+   CSV LINE PARSER
+   Handles quoted fields and commas within quotes
+=================================================== */
 function parseCsvLine(line){
   var result=[],cur='',inQ=false;
   for(var i=0;i<(line||'').length;i++){
@@ -280,7 +310,11 @@ function parseCsvLine(line){
   return result;
 }
 
-/* Persist parsed rows to global state and enable Compare once both files are loaded. */
+/* ===================================================
+   STORE PARSED ROWS
+   Saves parsed rows to state and enables Compare button
+   once both files are loaded
+=================================================== */
 function storeRows(isMyte,rows,name,statusId,boxId){
   if(isMyte) myteRows=rows; else mspsRows=rows;
   document.getElementById(statusId).textContent=name+' ('+rows.length+' rows)';
@@ -288,13 +322,16 @@ function storeRows(isMyte,rows,name,statusId,boxId){
   if(myteRows.length&&mspsRows.length) document.getElementById('compareBtn').disabled=false;
 }
 
-/* Case-insensitive column lookup — returns the trimmed cell value as a string. */
+/* ===================================================
+   COLUMN VALUE HELPERS
+   Case-insensitive column lookup by name
+=================================================== */
 function getCol(row,name){
   var k=Object.keys(row).find(function(k){return k.trim().toLowerCase()===name.toLowerCase();});
   return k?String(row[k]).trim():'';
 }
 
-/* Extract the Enterprise ID, accepting both "Enterprise ID" and "Resource Enterprise ID" as the column name. */
+/* Supports both "Enterprise ID" (MYTE) and "Resource Enterprise ID" (MSPS) */
 function getEID(row){
   var k=Object.keys(row).find(function(k){
     var n=k.trim().toLowerCase();
@@ -303,7 +340,7 @@ function getEID(row){
   return k?String(row[k]).trim():'';
 }
 
-/* Parse a numeric column, stripping currency symbols and commas. Returns 0 for absent or non-numeric values. */
+/* Strips $ and , before parsing numeric values */
 function getNum(row,name){
   var k=Object.keys(row).find(function(k){return k.trim().toLowerCase()===name.toLowerCase();});
   if(!k) return 0;
@@ -311,58 +348,64 @@ function getNum(row,name){
   return isNaN(v)?0:v;
 }
 
-/*
- * Parse the MYTE "Date" column into {m, y}.
- * Handles:
- *   1. Excel serial number > 40000 → subtract 25569 days to convert to Unix epoch
- *   2. MM/DD/YYYY string → year > 31 is in position [2], month in [1]
- *   3. YYYY-MM-DD string → year > 31 is in position [0], month in [1]
- */
+/* ===================================================
+   DATE PARSERS
+   Both parsers handle:
+   - Excel serial numbers (e.g. 46113)
+   - String dates in various formats
+   MYTE format: D/M/YYYY  e.g. 1/4/2026
+   MSPS format: M/D/YYYY  e.g. 04/01/2026
+=================================================== */
 function parseMYTEMonth(val){
   if(!val) return null;
   var s=String(val).trim();
+  // Handle Excel serial date numbers
   var n=Number(s);
   if(!isNaN(n)&&n>40000){
     var d=new Date(Math.round((n-25569)*86400*1000));
     return {m:d.getUTCMonth()+1,y:d.getUTCFullYear()};
   }
-  s=s.split(' ')[0].split('T')[0]; // strip time component
-  var parts=s.split(/[\/\-\.]/);
-  if(parts.length>=3){
-    var a=parseInt(parts[0]),b=parseInt(parts[1]),c=parseInt(parts[2]);
-    if(c>31) return {m:b,y:c}; // MM/DD/YYYY
-    if(a>31) return {m:b,y:a}; // YYYY-MM-DD
-  }
-  return null;
-}
-
-/*
- * Parse the MSPS "Timesheet Period Start Date" column into {m, y}.
- * Same Excel serial logic as parseMYTEMonth, but MSPS uses DD/MM/YYYY
- * so the day is in position [0] and month in position [1].
- */
-function parseMSPSMonth(val){
-  if(!val) return null;
-  var s=String(val).trim();
-  var n=Number(s);
-  if(!isNaN(n)&&n>40000){
-    var d=new Date(Math.round((n-25569)*86400*1000));
-    return {m:d.getUTCMonth()+1,y:d.getUTCFullYear()};
-  }
+  // Handle string dates (D/M/YYYY)
   s=s.split(' ')[0].split('T')[0];
   var parts=s.split(/[\/\-\.]/);
   if(parts.length>=3){
     var a=parseInt(parts[0]),b=parseInt(parts[1]),c=parseInt(parts[2]);
-    if(c>31) return {m:a,y:c}; // DD/MM/YYYY
+    if(c>31) return {m:b,y:c};
     if(a>31) return {m:b,y:a};
   }
   return null;
 }
 
-/* Round a number to at most 2 decimal places. */
+function parseMSPSMonth(val){
+  if(!val) return null;
+  var s=String(val).trim();
+  // Handle Excel serial date numbers
+  var n=Number(s);
+  if(!isNaN(n)&&n>40000){
+    var d=new Date(Math.round((n-25569)*86400*1000));
+    return {m:d.getUTCMonth()+1,y:d.getUTCFullYear()};
+  }
+  // Handle string dates (M/D/YYYY)
+  s=s.split(' ')[0].split('T')[0];
+  var parts=s.split(/[\/\-\.]/);
+  if(parts.length>=3){
+    var a=parseInt(parts[0]),b=parseInt(parts[1]),c=parseInt(parts[2]);
+    if(c>31) return {m:a,y:c};
+    if(a>31) return {m:b,y:a};
+  }
+  return null;
+}
+
+/* ===================================================
+   UTILITY: Round to 2 decimal places
+=================================================== */
 function round2(v){return Math.round(v*100)/100;}
 
-/* Read the EID filter textarea and return a Set of trimmed IDs, or null if the field is empty. */
+/* ===================================================
+   GET FILTER EID LIST
+   Reads the optional EID filter textarea.
+   Returns a Set of EIDs or null if empty.
+=================================================== */
 function getFilterEIDs(){
   var raw=document.getElementById('eidList').value.trim();
   if(!raw) return null;
@@ -370,21 +413,34 @@ function getFilterEIDs(){
   return ids.length?new Set(ids):null;
 }
 
-/* ── Main comparison logic ───────────────────────────────────── */
+/* ===================================================
+   MAIN COMPARE FUNCTION
+   1. Determines which EIDs to include:
+      - If filter list provided: use those EIDs
+      - Otherwise: use only EIDs found in MYTE
+   2. Aggregates MYTE hours by EID:
+      - BAL3 = "EXTERNAL CHARGEABLE SERVICES" → Project
+      - Anything else → Non-Project
+   3. Aggregates MSPS hours by EID:
+      - Timesheet Line Project Name = "Administrative" → Non-Project
+      - Blank project name → Skip row entirely
+      - Anything else → Project
+   4. Builds result rows and renders summary + table
+=================================================== */
 function compare(){
   showErr('');
   var mon=parseInt(document.getElementById('monthSel').value)||null;
   var yr=parseInt(document.getElementById('yearSel').value);
   var filterEIDs=getFilterEIDs();
 
-  // Collect all EIDs present in MYTE (restricted to the filter list when provided)
+  // Step 1: Build EID set from MYTE (filtered if list provided)
   var myteEIDs=new Set();
   myteRows.forEach(function(r){
     var e=getEID(r);
     if(e&&(!filterEIDs||filterEIDs.has(e))) myteEIDs.add(e);
   });
 
-  // Union: also include EIDs from the filter list absent in MYTE (will show as 0 hrs)
+  // If filter list provided, also include those EIDs even if not in MYTE
   var allEIDs=new Set(myteEIDs);
   if(filterEIDs){
     filterEIDs.forEach(function(e){ allEIDs.add(e); });
@@ -397,8 +453,7 @@ function compare(){
     return;
   }
 
-  // ── Aggregate MYTE hours per EID ──────────────────────────────
-  // BAL3 = "EXTERNAL CHARGEABLE SERVICES" → project hrs; everything else → non-project hrs
+  // Step 2: Aggregate MYTE hours per EID
   var myteMap={};
   myteRows.forEach(function(r){
     var eid=getEID(r); if(!eid||!allEIDs.has(eid)) return;
@@ -413,9 +468,7 @@ function compare(){
     else myteMap[eid].non+=hrs;
   });
 
-  // ── Aggregate MSPS hours per EID ──────────────────────────────
-  // Project name = "Administrative" → non-project hrs; anything else → project hrs
-  // Also captures the first "Timesheet Status" value seen for each EID
+  // Step 3: Aggregate MSPS hours per EID
   var mspsMap={};
   mspsRows.forEach(function(r){
     var eid=getEID(r); if(!eid||!allEIDs.has(eid)) return;
@@ -424,21 +477,24 @@ function compare(){
       if(!d||d.m!==mon||d.y!==yr) return;
     }
     var projName=getCol(r,'Timesheet Line Project Name');
-    if(!projName.trim()) return; // skip rows with no project assignment
+    if(!projName.trim()) return; // Skip blank project name rows
     var hrs=getNum(r,'Timesheet Hours');
     if(!mspsMap[eid]) mspsMap[eid]={proj:0,non:0,status:''};
     if(projName.trim().toLowerCase()==='administrative') mspsMap[eid].non+=hrs;
     else mspsMap[eid].proj+=hrs;
+    // Capture first non-empty Timesheet Status for this EID
     if(!mspsMap[eid].status) mspsMap[eid].status=getCol(r,'Timesheet Status');
   });
 
-  var eids=Array.from(allEIDs);
-  if(!eids.length){showErr('No data found for selected month/year in MYTE. Try "All months" or check the Date column format.');return;}
+  if(!Object.keys(myteMap).length&&!Object.keys(mspsMap).length){
+    showErr('No data found for selected month/year. Try "All months" or check the Date column format.');
+    return;
+  }
 
-  // Build one result row per EID; diff = MYTE project hrs − MSPS project hrs
-  tableData=eids.map(function(eid){
+  // Step 4: Build result rows for all EIDs
+  tableData=Array.from(allEIDs).map(function(eid){
     var m=myteMap[eid]||{proj:0,non:0};
-    var s=mspsMap[eid]||{proj:0,non:0};
+    var s=mspsMap[eid]||{proj:0,non:0,status:''};
     var diff=round2(m.proj-s.proj);
     return{eid:eid,mp:round2(m.proj),mn:round2(m.non),sp:round2(s.proj),sn:round2(s.non),status:s.status||'',diff:diff,match:diff===0};
   });
@@ -449,7 +505,9 @@ function compare(){
   document.getElementById('csvBox').style.display='none';
 }
 
-/* Compute totals across all EIDs and render the metric card grid. */
+/* ===================================================
+   RENDER SUMMARY METRIC CARDS
+=================================================== */
 function renderMetrics(){
   var total=tableData.length,matched=tableData.filter(function(r){return r.match;}).length;
   var tMP=tableData.reduce(function(a,r){return a+r.mp;},0);
@@ -457,21 +515,24 @@ function renderMetrics(){
   var tMN=tableData.reduce(function(a,r){return a+r.mn;},0);
   var tSN=tableData.reduce(function(a,r){return a+r.sn;},0);
   document.getElementById('metrics').innerHTML=
-    mc('Total resources',total,'')+
+    mc('Total Resources',total,'')+
     mc('Matched',matched,'color:#3B6D11')+
     mc('Mismatched',total-matched,'color:#A32D2D')+
-    mc('MYTE project hrs',tMP.toFixed(1),'')+
-    mc('MSPS project hrs',tSP.toFixed(1),'')+
-    mc('MYTE non-project hrs',tMN.toFixed(1),'')+
-    mc('MSPS non-project hrs',tSN.toFixed(1),'');
+    mc('MYTE Project Hours',tMP.toFixed(1),'')+
+    mc('MSPS Project Hours',tSP.toFixed(1),'')+
+    mc('MYTE Non-Project Hours',tMN.toFixed(1),'')+
+    mc('MSPS Non-Project Hours',tSN.toFixed(1),'');
 }
 
-/* Build the HTML string for a single metric card. */
+/* Helper: Build a single metric card HTML */
 function mc(lbl,val,style){
   return '<div class="metric-card"><div class="metric-label">'+lbl+'</div><div class="metric-val" style="'+style+'">'+val+'</div></div>';
 }
 
-/* Switch the active filter tab and re-render the table. */
+/* ===================================================
+   SET ACTIVE FILTER
+   Filters table rows by match status
+=================================================== */
 function setFilter(f){
   activeFilter=f;
   ['all','match','mismatch'].forEach(function(x){
@@ -480,7 +541,11 @@ function setFilter(f){
   renderTable();
 }
 
-/* Render table rows filtered by activeFilter ('all' | 'match' | 'mismatch'). */
+/* ===================================================
+   RENDER RESULTS TABLE
+   Applies active filter and renders rows
+   Diff colour: green = 0, red = positive, amber = negative
+=================================================== */
 function renderTable(){
   var rows=tableData.filter(function(r){
     if(activeFilter==='match') return r.match;
@@ -489,34 +554,31 @@ function renderTable(){
   });
   document.getElementById('tableBody').innerHTML=rows.map(function(r){
     var diffStr=r.diff>0?'+'+r.diff:String(r.diff);
-    // Green = exact match; red = MYTE > MSPS (over-reporting); amber = MYTE < MSPS (under-reporting)
     var diffColor=r.diff===0?'#3B6D11':r.diff>0?'#A32D2D':'#854F0B';
-    return '<tr><td><strong>'+r.eid+'</strong></td>'+
+    return '<tr><td>'+r.eid+'</td>'+
       '<td>'+r.mp+'</td><td>'+r.mn+'</td><td>'+round2(r.mp+r.mn)+'</td>'+
       '<td>'+r.sp+'</td><td>'+r.sn+'</td><td>'+round2(r.sp+r.sn)+'</td>'+
       '<td>'+r.status+'</td>'+
       '<td style="color:'+diffColor+'">'+diffStr+'</td>'+
       '<td><span class="badge '+(r.match?'match':'mismatch')+'">'+(r.match?'Match':'Mismatch')+'</span></td></tr>';
-  }).join('')||'<tr><td colspan="9" style="padding:1rem;color:#888">No rows for this filter.</td></tr>';
+  }).join('')||'<tr><td colspan="10" style="padding:1rem;color:#888">No rows for this filter.</td></tr>';
 }
 
-/*
- * Export tableData as a CSV file.
- * Primary path: Blob + object URL download (works in standard browsers).
- * Fallback path: display CSV in a read-only textarea for manual copy/save
- *   — used in sandboxed webview environments where Blob downloads are blocked.
- */
+/* ===================================================
+   EXPORT CSV
+   On GitHub Pages / real browser: triggers direct download
+   In Claude.ai sandbox: falls back to copy-paste text box
+=================================================== */
 function exportCSV(){
   if(!tableData.length) return;
-  var hdr='Enterprise ID,MYTE Project Hrs,MYTE Non-Project Hrs,MYTE Total Hrs,MSPS Project Hrs,MSPS Non-Project Hrs,MSPS Total Hrs,MSPS Timesheet Status,Project Hrs Diff,Status\n';
+  var hdr='Enterprise ID,MYTE Project Hours,MYTE Non-Project Hours,MYTE Total Hours,MSPS Project Hours,MSPS Non-Project Hours,MSPS Total Hours,MSPS Timesheet Status,Project Hours Difference,Status\n';
   var body=tableData.map(function(r){
     return[r.eid,r.mp,r.mn,round2(r.mp+r.mn),r.sp,r.sn,round2(r.sp+r.sn),r.status,r.diff,r.match?'Match':'Mismatch'].join(',');
   }).join('\n');
   var csv=hdr+body;
   var downloaded=false;
   try{
-    // ﻿ = UTF-8 BOM so Excel opens accented characters correctly
-    var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+    var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
     a.href=url; a.download='timesheet_comparison.csv';
@@ -525,8 +587,8 @@ function exportCSV(){
     URL.revokeObjectURL(url);
     downloaded=true;
   }catch(e){}
+  // Fallback: show copy-paste box for sandboxed environments
   if(!downloaded){
-    // Blob download failed — surface raw CSV for manual copy
     var box=document.getElementById('csvOutput');
     box.value=csv;
     document.getElementById('csvBox').style.display='block';
@@ -535,7 +597,10 @@ function exportCSV(){
   }
 }
 
-/* Copy the fallback CSV textarea to clipboard; try legacy execCommand first, then the async Clipboard API. */
+/* ===================================================
+   COPY CSV TO CLIPBOARD
+   Tries execCommand first, then navigator.clipboard API
+=================================================== */
 function copyCSV(){
   var box=document.getElementById('csvOutput');
   box.select();
@@ -546,7 +611,6 @@ function copyCSV(){
     document.getElementById('copyBtn').textContent='Copied!';
     setTimeout(function(){document.getElementById('copyBtn').textContent='Copy to clipboard';},2500);
   } else {
-    // execCommand unavailable — fall back to the modern async Clipboard API
     navigator.clipboard&&navigator.clipboard.writeText(box.value).then(function(){
       document.getElementById('copyBtn').textContent='Copied!';
       setTimeout(function(){document.getElementById('copyBtn').textContent='Copy to clipboard';},2500);
@@ -554,25 +618,29 @@ function copyCSV(){
   }
 }
 
-/* ── Event listeners ─────────────────────────────────────────── */
-
-// Toggle the EID filter textarea panel open/closed
+/* ===================================================
+   EVENT LISTENERS
+=================================================== */
+// Toggle EID filter input box
 document.getElementById('toggleEIDInput').onclick=function(){
   var box=document.getElementById('eidInputBox');
   var visible=box.style.display!=='none';
   box.style.display=visible?'none':'block';
   this.textContent=visible?'+ Add list':'- Hide list';
 };
-// Clear the EID textarea and its live counter
+
+// Clear EID filter list
 document.getElementById('clearEIDBtn').onclick=function(){
   document.getElementById('eidList').value='';
   document.getElementById('eidCount').textContent='';
 };
-// Live counter: update "N IDs entered" label as the user types
+
+// Update EID count label as user types
 document.getElementById('eidList').oninput=function(){
   var ids=this.value.trim().split(/[\n,]+/).map(function(s){return s.trim();}).filter(Boolean);
   document.getElementById('eidCount').textContent=ids.length?ids.length+' ID'+(ids.length>1?'s':'')+' entered':'';
 };
+
 document.getElementById('compareBtn').onclick=compare;
 document.getElementById('f-all').onclick=function(){setFilter('all');};
 document.getElementById('f-match').onclick=function(){setFilter('match');};
